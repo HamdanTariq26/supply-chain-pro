@@ -50,11 +50,11 @@
 *   Docker & Docker Compose
 *   Node.js v18+
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/HamdanTariq26/supply-chain-pro.git
-cd supply-chain-pro
-```
+## Download Full Release
+
+Download the packaged release from:
+
+https://github.com/HamdanTariq26/supply-chain-pro/releases/tag/v0.1.0
 
 ### 2. Start the Infrastructure
 Use the master script to start Fabric, Cassandra, Kafka, and the API:
