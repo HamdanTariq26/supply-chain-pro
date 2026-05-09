@@ -50,7 +50,7 @@
 *   Docker & Docker Compose
 *   Node.js v18+
 
-## Download Full Release
+### 1. Download Full Release
 
 Download the packaged release from:
 
