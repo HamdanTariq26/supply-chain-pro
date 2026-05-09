@@ -53,7 +53,7 @@
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/yourusername/supply-chain-pro.git
+git clone https://github.com/HamdanTariq26/supply-chain-pro.git
 cd supply-chain-pro
 ```
 
