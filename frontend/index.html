@@ -1,0 +1,2444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SupplyChain Pro — Blockchain Traceability Platform</title>
+  <meta name="description" content="Enterprise blockchain supply chain tracking with Hyperledger Fabric and Apache Cassandra">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter','sans-serif'], display: ['Outfit','sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <style>
+    *{scrollbar-width:thin;scrollbar-color:rgba(20,184,166,0.2) transparent}
+    ::-webkit-scrollbar{width:5px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:rgba(20,184,166,0.25);border-radius:4px}
+    ::-webkit-scrollbar-thumb:hover{background:rgba(20,184,166,0.45)}
+
+    body{font-family:'Inter',sans-serif;background:#04090f;overflow-x:hidden}
+
+    .sc-bg{
+      background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(13,148,136,0.15),transparent),
+               radial-gradient(ellipse 60% 40% at 80% 80%,rgba(217,119,6,0.06),transparent),
+               #04090f;
+    }
+
+    .glass{
+      background:rgba(8,22,36,0.75);
+      backdrop-filter:blur(20px);
+      border:1px solid rgba(20,184,166,0.1);
+    }
+    .glass-card{
+      background:linear-gradient(135deg,rgba(12,30,46,0.6) 0%,rgba(6,16,26,0.8) 100%);
+      backdrop-filter:blur(12px);
+      border:1px solid rgba(20,184,166,0.08);
+      transition:all 0.35s cubic-bezier(0.4,0,0.2,1);
+    }
+    .glass-card:hover{
+      border-color:rgba(20,184,166,0.22);
+      transform:translateY(-3px);
+      box-shadow:0 20px 40px -12px rgba(0,0,0,0.5),0 0 24px rgba(20,184,166,0.07);
+    }
+    .glass-input{
+      background:rgba(6,16,26,0.7);
+      border:1px solid rgba(20,184,166,0.12);
+      transition:all 0.3s ease;
+      color:#e2e8f0;
+    }
+    .glass-input:focus{
+      background:rgba(6,16,26,0.9);
+      border-color:rgba(20,184,166,0.45);
+      box-shadow:0 0 0 3px rgba(20,184,166,0.1);
+      outline:none;
+    }
+    .glass-input::placeholder{color:rgba(148,163,184,0.4)}
+
+    .btn-primary{
+      background:linear-gradient(135deg,#0d9488 0%,#059669 100%);
+      position:relative;overflow:hidden;
+      box-shadow:0 4px 20px rgba(13,148,136,0.3);
+    }
+    .btn-primary::before{
+      content:'';position:absolute;top:0;left:-100%;
+      width:100%;height:100%;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
+      transition:left 0.5s;
+    }
+    .btn-primary:hover::before{left:100%}
+    .btn-primary:hover{box-shadow:0 6px 28px rgba(13,148,136,0.45)}
+
+    .btn-gold{
+      background:linear-gradient(135deg,#d97706 0%,#b45309 100%);
+      box-shadow:0 4px 20px rgba(217,119,6,0.3);
+    }
+    .btn-gold:hover{box-shadow:0 6px 28px rgba(217,119,6,0.45)}
+
+    .gradient-text{
+      background:linear-gradient(135deg,#2dd4bf 0%,#34d399 50%,#fbbf24 100%);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    }
+    .gold-text{
+      background:linear-gradient(135deg,#fbbf24,#f59e0b);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    }
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes scaleIn{from{opacity:0;transform:scale(0.94)}to{opacity:1;transform:scale(1)}}
+    @keyframes pulse-teal{0%,100%{box-shadow:0 0 0 0 rgba(20,184,166,0.4)}50%{box-shadow:0 0 0 8px rgba(20,184,166,0)}}
+    @keyframes scanLine{0%{top:0%}50%{top:100%}100%{top:0%}}
+    .animate-scan-line{animation:scanLine 2.5s cubic-bezier(0.4,0,0.2,1) infinite}
+    .animate-fade-in{animation:fadeIn 0.4s ease-out forwards}  @keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes toastIn{from{opacity:0;transform:translateX(100%)}to{opacity:1;transform:translateX(0)}}
+    @keyframes toastOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(100%)}}
+    @keyframes countUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+    .animate-fade-in{animation:fadeIn 0.5s ease forwards}
+    .animate-slide-up{animation:slideUp 0.45s cubic-bezier(0.4,0,0.2,1) forwards}
+    .animate-scale-in{animation:scaleIn 0.35s cubic-bezier(0.4,0,0.2,1) forwards}
+    .animate-spin{animation:spin 1s linear infinite}
+    .animate-toast-in{animation:toastIn 0.35s ease forwards}
+    .animate-count{animation:countUp 0.5s ease forwards}
+
+    .sidebar-item-active{
+      background:linear-gradient(90deg,rgba(20,184,166,0.18) 0%,rgba(20,184,166,0.05) 100%);
+      border-left:3px solid #14b8a6;
+      color:#fff;
+    }
+    .sidebar-item{border-left:3px solid transparent;transition:all 0.25s ease}
+    .sidebar-item:hover{background:rgba(20,184,166,0.07);color:#fff}
+
+    .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+    .dot-online{background:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.6);animation:pulse-teal 2s infinite}
+    .dot-offline{background:#ef4444}
+    .dot-unknown{background:#6b7280}
+
+    .pipeline-node{
+      display:flex;flex-direction:column;align-items:center;
+      position:relative;flex:1;
+    }
+    .pipeline-node::after{
+      content:'';position:absolute;top:16px;left:50%;
+      width:100%;height:2px;
+      background:linear-gradient(90deg,rgba(20,184,166,0.3),rgba(20,184,166,0.1));
+    }
+    .pipeline-node:last-child::after{display:none}
+
+    .qr-container img{border-radius:12px;box-shadow:0 0 30px rgba(20,184,166,0.15)}
+
+    .sparkline-bar{
+      display:inline-block;width:6px;border-radius:2px;
+      background:linear-gradient(to top,#0d9488,#34d399);
+      margin:0 1px;transition:height 0.3s ease;
+    }
+
+    .tab-btn{padding:10px 18px;font-size:13px;font-weight:500;transition:all 0.2s;border-bottom:2px solid transparent}
+    .tab-btn.active{color:#2dd4bf;border-bottom-color:#14b8a6}
+    .tab-btn:not(.active){color:#64748b}
+    .tab-btn:not(.active):hover{color:#94a3b8}
+
+    .role-card{cursor:pointer;transition:all 0.35s cubic-bezier(0.4,0,0.2,1)}
+    .role-card:hover{transform:translateY(-6px) scale(1.02)}
+    .role-card.selected{
+      border-color:rgba(20,184,166,0.5)!important;
+      background:linear-gradient(135deg,rgba(20,184,166,0.15),rgba(5,150,105,0.1))!important;
+      box-shadow:0 0 28px rgba(20,184,166,0.18);
+    }
+
+    .bg-grid{
+      background-image:linear-gradient(rgba(20,184,166,0.04) 1px,transparent 1px),
+                       linear-gradient(90deg,rgba(20,184,166,0.04) 1px,transparent 1px);
+      background-size:48px 48px;
+    }
+
+    select option{background:#0a1929;color:#e2e8f0}
+    .glass-input option{background:#0a1929}
+
+    ::-webkit-calendar-picker-indicator{filter:invert(0.6) sepia(1) saturate(2) hue-rotate(150deg)}
+    .custom-scrollbar::-webkit-scrollbar{width:6px;height:6px}
+    .custom-scrollbar::-webkit-scrollbar-track{background:rgba(255,255,255,0.02)}
+    .custom-scrollbar::-webkit-scrollbar-thumb{background:rgba(20,184,166,0.2);border-radius:10px}
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover{background:rgba(20,184,166,0.4)}
+  </style>
+</head>
+<body class="text-slate-300 antialiased sc-bg">
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef, createContext, useContext } = React;
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+const fmt = (v) => {
+  if (!v) return 'N/A';
+  try { const d=new Date(v); return isNaN(d.getTime())?'N/A':d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}); } catch { return 'N/A'; }
+};
+const fmtDT = (v) => {
+  if (!v) return 'N/A';
+  try { const d=new Date(v); return isNaN(d.getTime())?'N/A':d.toLocaleString('en-US',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); } catch { return 'N/A'; }
+};
+const uuidToDate = (tu) => {
+  if (!tu) return null;
+  try {
+    const p=tu.split('-');
+    if (p.length<3) return null;
+    const t=((parseInt(p[2].substring(1),16)*Math.pow(2,48))+(parseInt(p[1],16)*Math.pow(2,32))+parseInt(p[0],16)-122192928000000000)/10000;
+    return new Date(t).toISOString();
+  } catch { return null; }
+};
+const timeSafe = (v) => { if(!v) return 0; const d=new Date(v); return isNaN(d.getTime())?0:d.getTime(); };
+
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const API_BASE = 'https://exmaple.dev/api'; //To link it with server just put your ngrok 'example.dev'
+
+const STATUS_FLOW = ['MANUFACTURED','SHIPPED_TO_DISTRIBUTOR','RECEIVED_BY_DISTRIBUTOR','SHIPPED_TO_RETAILER','RECEIVED_BY_RETAILER','SOLD_TO_CUSTOMER'];
+
+const STATUS_CFG = {
+  MANUFACTURED:           { color:'bg-teal-500',   text:'text-teal-400',   border:'border-teal-500/30',   icon:'factory', label:'Manufactured',             glow:'rgba(20,184,166,0.25)' },
+  SHIPPED_TO_DISTRIBUTOR: { color:'bg-amber-500',  text:'text-amber-400',  border:'border-amber-500/30',  icon:'truck',   label:'Shipped to Distributor',   glow:'rgba(245,158,11,0.25)' },
+  RECEIVED_BY_DISTRIBUTOR:{ color:'bg-orange-500', text:'text-orange-400', border:'border-orange-500/30', icon:'package', label:'Received by Distributor',  glow:'rgba(249,115,22,0.25)' },
+  SHIPPED_TO_RETAILER:    { color:'bg-yellow-500', text:'text-yellow-400', border:'border-yellow-500/30', icon:'truck',   label:'Shipped to Retailer',      glow:'rgba(234,179,8,0.25)'  },
+  RECEIVED_BY_RETAILER:   { color:'bg-lime-500',   text:'text-lime-400',   border:'border-lime-500/30',   icon:'store',   label:'Received by Retailer',     glow:'rgba(132,204,22,0.25)' },
+  SOLD_TO_CUSTOMER:       { color:'bg-emerald-500',text:'text-emerald-400',border:'border-emerald-500/30',icon:'user',    label:'Sold to Customer',         glow:'rgba(16,185,129,0.25)' },
+};
+
+const ROLE_CFG = {
+  MANUFACTURER: { label:'Manufacturer', gradient:'from-teal-600 to-emerald-700',   icon:'factory', description:'Create & ship products', allowed:['SHIPPED_TO_DISTRIBUTOR'], color:'teal' },
+  DISTRIBUTOR:  { label:'Distributor',  gradient:'from-amber-600 to-orange-700',   icon:'truck',   description:'Receive & forward products', allowed:['RECEIVED_BY_DISTRIBUTOR','SHIPPED_TO_RETAILER'], color:'amber' },
+  RETAILER:     { label:'Retailer',     gradient:'from-lime-600 to-green-700',     icon:'store',   description:'Stock & sell to customers', allowed:['RECEIVED_BY_RETAILER','SOLD_TO_CUSTOMER'], color:'lime' },
+  CUSTOMER:     { label:'Customer',     gradient:'from-emerald-600 to-teal-700',   icon:'user',    description:'Verify & track purchases', allowed:[], color:'emerald' },
+};
+
+// ─── API SERVICE ──────────────────────────────────────────────────────────────
+const api = {
+  req: async (ep, opts={}) => {
+    const token = sessionStorage.getItem('sc_token');
+    const res = await fetch(`${API_BASE}${ep}`, {
+      ...opts,
+      headers: { 
+        'Content-Type':'application/json', 
+        'ngrok-skip-browser-warning': '1',
+        ...(token&&{Authorization:`Bearer ${token}`}), 
+        ...opts.headers 
+      }
+    });
+    if (!res.ok) { const e=await res.json().catch(()=>({error:'Request failed'})); throw new Error(e.error||`HTTP ${res.status}`); }
+    return res.json();
+  },
+  login:   (email,pw)  => api.req('/auth/login',   { method:'POST', body:JSON.stringify({email,password:pw}) }),
+  signup:  (data)      => api.req('/auth/signup',  { method:'POST', body:JSON.stringify(data) }),
+  me:      ()          => api.req('/auth/me'),
+  roles:   ()          => api.req('/auth/roles/available'),
+  products:()          => api.req('/products'),
+  myProducts:(uid)     => api.req(`/products/user/${uid}`),
+  product: (id)        => api.req(`/products/${id}`),
+  create:  (data)      => api.req('/products',     { method:'POST', body:JSON.stringify(data) }),
+  transfer:(id,data)   => api.req(`/products/${id}/transfer`, { method:'POST', body:JSON.stringify(data) }),
+  history: (id)        => api.req(`/products/${id}/history`),
+  events:  (id)        => api.req(`/products/${id}/events`),
+  verify:  (id)        => api.req(`/products/${id}/verify`),
+  qrcode:  (id)        => api.req(`/products/${id}/qrcode`),
+  iotRead: (id)        => api.req(`/iot/${id}/readings`),
+  iotAlerts:(id)       => api.req(`/iot/${id}/alerts`),
+  payment: (id)        => api.req(`/products/${id}/payment`),
+  payNow:  (id,data)   => api.req(`/products/${id}/payment`, { method:'POST', body:JSON.stringify(data) }),
+  benchFull: ()        => api.req('/benchmarks/full'),
+  benchTps:  (n)       => api.req('/benchmarks/tps', { method:'POST', body:JSON.stringify({count:n}) }),
+  health:  ()          => fetch(`${API_BASE.replace('/api','')}/health`,{headers:{'ngrok-skip-browser-warning':'1'}}).then(r=>r.json()).catch(()=>null),
+};
+
+// ─── TOAST CONTEXT ────────────────────────────────────────────────────────────
+const ToastCtx = createContext();
+const ToastProvider = ({children}) => {
+  const [toasts,setToasts] = useState([]);
+  const add = (msg,type='success') => {
+    const id = Date.now();
+    setToasts(t=>[...t,{id,msg,type}]);
+    setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),3800);
+  };
+  const toast = { success:(m)=>add(m,'success'), error:(m)=>add(m,'error'), warn:(m)=>add(m,'warn'), info:(m)=>add(m,'info') };
+  const colors = { success:'border-emerald-500/50 bg-emerald-500/10 text-emerald-300', error:'border-rose-500/50 bg-rose-500/10 text-rose-300', warn:'border-amber-500/50 bg-amber-500/10 text-amber-300', info:'border-teal-500/50 bg-teal-500/10 text-teal-300' };
+  const icons  = { success:'✓', error:'✕', warn:'⚠', info:'ℹ' };
+  return (
+    <ToastCtx.Provider value={toast}>
+      {children}
+      <div className="fixed top-4 right-4 z-[200] space-y-2 pointer-events-none">
+        {toasts.map(t=>(
+          <div key={t.id} className={`animate-toast-in flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-xl min-w-[280px] max-w-sm shadow-2xl pointer-events-auto ${colors[t.type]}`}>
+            <span className="text-lg font-bold">{icons[t.type]}</span>
+            <p className="text-sm font-medium">{t.msg}</p>
+          </div>
+        ))}
+      </div>
+    </ToastCtx.Provider>
+  );
+};
+const useToast = () => useContext(ToastCtx);
+
+// ─── AUTH CONTEXT ─────────────────────────────────────────────────────────────
+const AuthCtx = createContext();
+const AuthProvider = ({children}) => {
+  const [user,setUser]   = useState(null);
+  const [loading,setLd]  = useState(true);
+
+  useEffect(()=>{
+    const token = sessionStorage.getItem('sc_token');
+    if (token) {
+      api.me().then(r=>setUser(r.user)).catch(()=>sessionStorage.removeItem('sc_token')).finally(()=>setLd(false));
+    } else { setLd(false); }
+  },[]);
+
+  const login = async (email,pw) => { const r=await api.login(email,pw); sessionStorage.setItem('sc_token',r.token); setUser(r.user); return r.user; };
+  const signup = async (data) => { const r=await api.signup(data); sessionStorage.setItem('sc_token',r.token); setUser(r.user); return r.user; };
+  const logout = () => { sessionStorage.removeItem('sc_token'); setUser(null); };
+
+  return <AuthCtx.Provider value={{user,login,signup,logout,loading}}>{children}</AuthCtx.Provider>;
+};
+const useAuth = () => useContext(AuthCtx);
+
+// ─── ICONS ─────────────────────────────────────────────────────────────────────
+const I = ({name,size=20,className=''}) => {
+  const s = {width:size,height:size,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'};
+  const m = {
+    factory:   <svg {...s}><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></svg>,
+    truck:     <svg {...s}><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>,
+    store:     <svg {...s}><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/></svg>,
+    user:      <svg {...s}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+    package:   <svg {...s}><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>,
+    search:    <svg {...s}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>,
+    arrowR:    <svg {...s}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>,
+    check:     <svg {...s}><path d="M20 6 9 17l-5-5"/></svg>,
+    clock:     <svg {...s}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+    mapPin:    <svg {...s}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>,
+    hash:      <svg {...s}><line x1="4" x2="20" y1="9" y2="9"/><line x1="4" x2="20" y1="15" y2="15"/><line x1="10" x2="8" y1="3" y2="21"/><line x1="16" x2="14" y1="3" y2="21"/></svg>,
+    alert:     <svg {...s}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
+    loader:    <svg {...s} className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>,
+    plus:      <svg {...s}><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
+    shield:    <svg {...s}><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>,
+    history:   <svg {...s}><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>,
+    logout:    <svg {...s}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>,
+    mail:      <svg {...s}><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>,
+    lock:      <svg {...s}><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+    eye:       <svg {...s}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>,
+    qr:        <svg {...s}><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v4"/></svg>,
+    transfer:  <svg {...s}><path d="m18 9-6-6-6 6"/><path d="m12 3v14"/><path d="M5 21h14"/></svg>,
+    chart:     <svg {...s}><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>,
+    bell:      <svg {...s}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>,
+    settings:  <svg {...s}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
+    phone:     <svg {...s}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
+    idCard:    <svg {...s}><rect width="18" height="14" x="3" y="5" rx="2"/><path d="M15 14a3 3 0 0 0-6 0"/><circle cx="12" cy="10" r="1"/></svg>,
+    globe:     <svg {...s}><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
+    building:  <svg {...s}><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>,
+    box:       <svg {...s}><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>,
+    thermo:    <svg {...s}><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>,
+    droplets:  <svg {...s}><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>,
+    chevDown:  <svg {...s}><path d="m6 9 6 6 6-6"/></svg>,
+    dollar:    <svg {...s}><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
+    activity:  <svg {...s}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+    wifi:      <svg {...s}><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg>,
+    zap:       <svg {...s}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+    copy:      <svg {...s}><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>,
+    x:         <svg {...s}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
+    refresh:   <svg {...s}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>,
+    heart:     <svg {...s}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>,
+    db:        <svg {...s}><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>,
+  };
+  return <span className={className}>{m[name]||null}</span>;
+};
+
+// ─── SHARED UI ──────────────────────────────────────────────────────────────
+const StatusBadge = ({status,size='sm'}) => {
+  const c = STATUS_CFG[status]||STATUS_CFG.MANUFACTURED;
+  const sz = size==='lg'?'px-4 py-2 text-sm':'px-3 py-1 text-xs';
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full font-semibold border ${sz} bg-slate-900/50 ${c.text} ${c.border}`}>
+      <I name={c.icon} size={size==='lg'?15:13}/>{c.label}
+    </span>
+  );
+};
+
+const Btn = ({children,onClick,type='button',variant='primary',loading=false,className='',icon=null,disabled=false}) => {
+  const v = {
+    primary:'btn-primary text-white',
+    gold:'btn-gold text-white',
+    secondary:'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/50',
+    ghost:'hover:bg-slate-800/50 text-slate-400 hover:text-white',
+    danger:'bg-rose-600 hover:bg-rose-500 text-white'
+  };
+  return (
+    <button type={type} onClick={onClick} disabled={loading||disabled}
+      className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${v[variant]||v.primary} ${className}`}>
+      {loading?<I name="loader" size={16}/>:icon}{children}
+    </button>
+  );
+};
+
+const Inp = ({label,icon,error,className='',...props}) => (
+  <div className={`space-y-1.5 ${className}`}>
+    {label&&<label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</label>}
+    <div className="relative">
+      {icon&&<div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"><I name={icon} size={16}/></div>}
+      <input className={`w-full glass-input rounded-xl px-4 py-2.5 text-sm ${icon?'pl-10':''} ${error?'border-rose-500/50':''}`} {...props}/>
+    </div>
+    {error&&<p className="text-xs text-rose-400">{error}</p>}
+  </div>
+);
+
+const Sel = ({label,icon,error,options,className='',...props}) => (
+  <div className={`space-y-1.5 ${className}`}>
+    {label&&<label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</label>}
+    <div className="relative">
+      {icon&&<div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"><I name={icon} size={16}/></div>}
+      <select className={`w-full glass-input rounded-xl px-4 py-2.5 text-sm appearance-none ${icon?'pl-10':''}`} {...props}>
+        {options.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"><I name="chevDown" size={14}/></div>
+    </div>
+    {error&&<p className="text-xs text-rose-400">{error}</p>}
+  </div>
+);
+
+const Stat = ({title,value,subtitle,icon,color='teal',trend}) => (
+  <div className="glass-card rounded-2xl p-6 relative overflow-hidden group border-white/5">
+    <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-[0.03] group-hover:opacity-[0.08] transition-all duration-500 scale-75 group-hover:scale-100" style={{background:`radial-gradient(circle,var(--tw-gradient-from),transparent)`}}></div>
+    <div className="flex justify-between items-start mb-4">
+      <div className={`p-3 rounded-2xl bg-${color}-500/10 text-${color}-400 border border-${color}-500/20`}><I name={icon} size={24}/></div>
+      {trend!==undefined&&(
+        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${trend>0?'bg-emerald-500/10 text-emerald-400':'bg-rose-500/10 text-rose-400'}`}>
+          {trend>0?'+':''}{trend}%
+        </span>
+      )}
+    </div>
+    <h3 className="text-3xl font-display font-bold text-white mb-1 tracking-tight">{value}</h3>
+    <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">{title}</p>
+    {subtitle&&<p className="text-[10px] text-slate-600 mt-2 italic">{subtitle}</p>}
+  </div>
+);
+
+// ─── SIDEBAR ────────────────────────────────────────────────────────────────
+const Sidebar = ({user,activeTab,onTabChange,onProfileClick}) => {
+  const role = ROLE_CFG[user?.role]||ROLE_CFG.MANUFACTURER;
+  const [health,setHealth] = useState(null);
+  const menu = [
+    {id:'dashboard',label:'Dashboard',icon:'chart'},
+    {id:'products',label:'Inventory',icon:'package'},
+    {id:'transfers',label:'Logistics',icon:'transfer'},
+    {id:'history',label:'Audit',icon:'history'},
+    ...(user?.role==='CUSTOMER'?[{id:'verify',label:'Verify',icon:'shield'}]:[]),
+    {id:'scanner',label:'Scanner',icon:'qr'},
+    {id:'benchmarks',label:'System',icon:'activity'},
+    {id:'about',label:'About',icon:'globe'},
+    {id:'settings',label:'Settings',icon:'settings'},
+  ];
+
+  useEffect(()=>{
+    const check = () => api.health().then(setHealth);
+    check(); const iv=setInterval(check,30000);
+    return ()=>clearInterval(iv);
+  },[]);
+
+  return (
+    <aside className="hidden lg:flex w-64 glass border-r border-white/5 flex-col h-screen sticky top-0 z-40">
+      <div className="p-6 border-b border-white/5 mb-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl shadow-lg shadow-teal-500/20">
+            <I name="shield" size={20} className="text-white"/>
+          </div>
+          <div>
+            <h1 className="font-display font-bold text-white text-lg tracking-tight">SupplyChain</h1>
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
+              <p className="text-[9px] text-teal-400/80 font-bold tracking-[0.2em] uppercase">Enterprise</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-3 mx-3 mt-3 rounded-xl glass-card cursor-pointer group" onClick={onProfileClick}>
+        <div className="flex items-center gap-2.5">
+          <div className={`p-2 rounded-lg bg-gradient-to-br ${role.gradient}`}>
+            <I name={role.icon} size={16} className="text-white"/>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-white truncate">{user?.full_name||'User'}</p>
+            <p className="text-[10px] text-slate-500">{role.label}</p>
+          </div>
+          <I name="chevDown" size={12} className="text-slate-600 group-hover:text-teal-400 transition-colors"/>
+        </div>
+      </div>
+
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto mt-2">
+        {menu.map(item=>(
+          <button key={item.id} onClick={()=>onTabChange(item.id)}
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${activeTab===item.id?'sidebar-item-active':'sidebar-item text-slate-500'}`}>
+            <I name={item.icon} size={16}/>{item.label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="p-3 border-t border-white/5">
+        <button onClick={()=>{sessionStorage.removeItem('sc_token');window.location.reload();}}
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-medium text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all">
+          <I name="logout" size={16}/>Sign Out
+        </button>
+      </div>
+    </aside>
+  );
+};
+
+// ─── PRODUCT CARD ───────────────────────────────────────────────────────────
+const ProductCard = ({product,onClick,showActions=false,userRole}) => {
+  const cs = product.current_status||product.currentStatus||'MANUFACTURED';
+  const cfg = STATUS_CFG[cs]||STATUS_CFG.MANUFACTURED;
+  const rc = ROLE_CFG[userRole]||ROLE_CFG.MANUFACTURER;
+  const canTransfer = showActions && rc.allowed.some(s=>STATUS_FLOW.indexOf(s)>STATUS_FLOW.indexOf(cs));
+  const pid = product.product_id||product.productId;
+
+  return (
+    <div onClick={()=>onClick?.(product)}
+      className="glass-card rounded-2xl p-4 cursor-pointer group" style={{boxShadow:`0 0 20px ${cfg.glow.replace('0.25','0.08')}`}}>
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2.5 rounded-xl bg-slate-800/80 group-hover:bg-teal-500/15 transition-colors">
+            <I name="package" size={18} className="text-slate-400 group-hover:text-teal-400 transition-colors"/>
+          </div>
+          <div>
+            <h3 className="font-semibold text-white text-sm group-hover:text-teal-300 transition-colors">{product.name}</h3>
+            <p className="text-[10px] text-slate-600">{product.category}</p>
+          </div>
+        </div>
+        <StatusBadge status={cs}/>
+      </div>
+
+      <div className="space-y-1.5 mb-3">
+        <div className="flex items-center gap-1.5 text-[10px] text-slate-600">
+          <I name="hash" size={11}/><span className="font-mono truncate">{pid}</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] text-slate-600">
+          <I name="mapPin" size={11}/><span>{product.metadata?.location||'N/A'}</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] text-slate-600">
+          <I name="clock" size={11}/><span>{fmt(product.updated_at||product.updatedAt)}</span>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between pt-3 border-t border-white/5">
+        <div className="text-[10px]">
+          <span className="text-slate-600">Owner: </span>
+          <span className="text-slate-400 font-medium">{product.current_owner_org||product.currentOwner}</span>
+        </div>
+        {canTransfer&&(
+          <span className="text-[10px] font-semibold text-teal-400 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            Transfer <I name="arrowR" size={10}/>
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── SUPPLY CHAIN PIPELINE ──────────────────────────────────────────────────
+const Pipeline = ({currentStatus}) => {
+  const ci = STATUS_FLOW.indexOf(currentStatus);
+  return (
+    <div className="flex items-start gap-0 w-full py-4 px-2">
+      {STATUS_FLOW.map((s,i)=>{
+        const c = STATUS_CFG[s];
+        const done = i<=ci;
+        const active = i===ci;
+        return (
+          <div key={s} className="flex-1 flex flex-col items-center relative">
+            {i<STATUS_FLOW.length-1&&(
+              <div className="absolute top-4 left-1/2 w-full h-0.5" style={{background:i<ci?'linear-gradient(90deg,#14b8a6,#0d9488)':'rgba(51,65,85,0.3)'}}></div>
+            )}
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center relative z-10 border-2 transition-all ${active?`${c.color} border-transparent shadow-lg`:`${done?'bg-teal-900/50 border-teal-500/50':'bg-slate-900 border-slate-700'}`}`}
+              style={active?{boxShadow:`0 0 16px ${c.glow}`}:{}}>
+              <I name={c.icon} size={14} className={active?'text-white':done?'text-teal-400':'text-slate-600'}/>
+            </div>
+            <p className={`text-[9px] mt-1.5 text-center leading-tight font-medium max-w-[60px] ${active?c.text:done?'text-teal-500/70':'text-slate-700'}`}>
+              {c.label}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// ─── PRODUCT TIMELINE ───────────────────────────────────────────────────────
+const Timeline = ({history,currentStatus,loading,product}) => {
+  const ci = STATUS_FLOW.indexOf(currentStatus);
+  
+  // Filter and normalize
+  const milestones = (history||[]).filter(h => {
+    const s = (h.status||h.state||h.event_type||h.eventType||'').toString().trim().toUpperCase();
+    return s !== 'IOT_READING' && s !== '';
+  });
+
+  // Sort by time (Oldest first)
+  const sorted = [...milestones].sort((a,b) => {
+    const ta = a.timestamp || a.event_time || '';
+    const tb = b.timestamp || b.event_time || '';
+    return ta.toString().localeCompare(tb.toString());
+  });
+
+  // If loading is finished but we have no milestones, show a default manufactured state using real product data
+  if (!loading && sorted.length === 0 && product) {
+    sorted.push({ 
+      status: 'MANUFACTURED', 
+      timestamp: product.created_at || product.createdAt || new Date().toISOString(), 
+      location: product.metadata?.location || 'Factory', 
+      owner: product.manufacturer_org || product.manufacturer || product.current_owner_org || 'Unknown',
+      notes: 'Genesis record' 
+    });
+  }
+
+  return (
+    <div className="relative pl-8 py-2">
+      <div className="absolute left-[11px] top-2 bottom-2 w-0.5 rounded-full" style={{background:'linear-gradient(to bottom,#14b8a6,#0d9488,#d97706,#10b981)'}}></div>
+      <div className="space-y-5">
+        {loading ? (
+          <div className="py-10 text-center animate-pulse">
+            <I name="loader" className="mx-auto mb-2 text-teal-500 animate-spin" size={24}/>
+            <p className="text-xs text-slate-500 uppercase tracking-widest">Loading Journey...</p>
+          </div>
+        ) : sorted.map((item,idx)=>{
+          const val = item.value || item.Value || item;
+          let rawSt = item.status || item.state || item.event_type || item.eventType || 
+                      val.status || val.state || val.currentStatus || val.current_status;
+          
+          if(!rawSt && idx === 0) rawSt = 'MANUFACTURED';
+          if(!rawSt) return null;
+
+          const st = rawSt.toString().trim().toUpperCase();
+          const isActive = STATUS_FLOW.indexOf(st) <= ci;
+          const c = STATUS_CFG[st]||STATUS_CFG.MANUFACTURED;
+          const ts = item.timestamp || uuidToDate(item.event_time) || val.timestamp || '';
+          const owner = item.owner || item.to_org || item.from_org || val.currentOwnerOrg || val.current_owner_org || val.owner || 'Unknown';
+          const loc = item.location || val.location || 'N/A';
+          const notes = item.notes || val.notes || '';
+          const txId = item.txId || item.tx_id || item.fabric_tx_id || val.fabricTxId || val.fabric_tx_id || '';
+
+          return (
+            <div key={idx} className="relative animate-slide-up" style={{animationDelay:`${idx*80}ms`}}>
+              <div className={`absolute -left-5 top-1 w-3.5 h-3.5 rounded-full border-2 ${isActive?`${c.color} border-transparent`:'bg-slate-900 border-slate-700'} flex items-center justify-center`}>
+                {isActive&&<div className="w-1 h-1 rounded-full bg-white"></div>}
+              </div>
+              <div className={`glass-card rounded-xl p-3.5 ${isActive?'border-l-2 '+c.border:'opacity-30'}`}>
+                <div className="flex justify-between items-start mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <I name={c.icon} size={13} className={c.text}/>
+                    <span className={`font-semibold text-xs ${isActive?c.text:'text-slate-700'}`}>{c.label}</span>
+                  </div>
+                  <span className="text-[10px] text-slate-700 font-mono">{fmt(ts)}</span>
+                </div>
+                <div className="text-xs text-slate-500 space-y-0.5">
+                  <p><span className="text-slate-700">Owner:</span> {owner}</p>
+                  <p><span className="text-slate-700">Location:</span> {loc}</p>
+                  {notes&&<p className="text-slate-700 italic text-[10px] bg-slate-900/40 p-1.5 rounded-lg mt-1">"{notes}"</p>}
+                </div>
+                {txId&&<div className="mt-2 text-[9px] font-mono text-slate-800 truncate">{txId}</div>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ─── PROFILE MODAL ──────────────────────────────────────────────────────────
+const ProfileModal = ({user,onClose}) => {
+  const [copied,setCopied] = useState(false);
+  if (!user) return null;
+  const role = ROLE_CFG[user.role]||ROLE_CFG.MANUFACTURER;
+  const copyId = () => { navigator.clipboard.writeText(user.userId||user.user_id||''); setCopied(true); setTimeout(()=>setCopied(false),2000); };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+      <div className="glass rounded-2xl w-full max-w-md animate-scale-in" onClick={e=>e.stopPropagation()}>
+        <div className="p-5 border-b border-white/5 flex justify-between items-center">
+          <h2 className="text-lg font-display font-bold text-white">My Profile</h2>
+          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors"><I name="x" size={18}/></button>
+        </div>
+        <div className="p-5 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className={`p-3 rounded-full bg-gradient-to-br ${role.gradient}`}><I name={role.icon} size={22} className="text-white"/></div>
+            <div>
+              <p className="font-semibold text-white">{user.full_name}</p>
+              <p className="text-xs text-slate-400">{role.label} • {user.org_name||'N/A'}</p>
+            </div>
+          </div>
+          <div className="glass-card rounded-xl p-3">
+            <p className="text-[10px] text-slate-600 uppercase mb-1">User ID</p>
+            <div className="flex items-center justify-between gap-2">
+              <code className="text-xs font-mono text-teal-400 break-all">{user.userId||user.user_id}</code>
+              <button onClick={copyId} className="text-[10px] px-2 py-1 rounded-lg bg-teal-500/15 text-teal-400 hover:bg-teal-500/25 transition-colors whitespace-nowrap">
+                {copied?'Copied!':'Copy'}
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {[{l:'Email',v:user.email},{l:'Phone',v:user.phone},{l:'CNIC',v:user.cnic},{l:'Role',v:role.label}].map((x,i)=>(
+              <div key={i} className="glass-card rounded-xl p-3">
+                <p className="text-[10px] text-slate-600 uppercase mb-0.5">{x.l}</p>
+                <p className="text-xs text-white font-medium truncate">{x.v||'N/A'}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── TRANSFER MODAL ─────────────────────────────────────────────────────────
+const TransferModal = ({product,userRole,onClose,onSuccess}) => {
+  const {user} = useAuth();
+  const toast = useToast();
+  const [loading,setLd] = useState(false);
+  const [fd,setFd] = useState({newOwner:'',toUserId:'',newStatus:'',location:product.metadata?.location||'',price:'',notes:''});
+  const cs = product.current_status||product.currentStatus||'MANUFACTURED';
+  const rc = ROLE_CFG[userRole]||ROLE_CFG.MANUFACTURER;
+  const valid = rc.allowed.filter(s=>STATUS_FLOW.indexOf(s)>STATUS_FLOW.indexOf(cs));
+  
+  const isAccept = fd.newStatus?.startsWith('RECEIVED_BY');
+
+  useEffect(()=>{if(valid.length>0&&!fd.newStatus) setFd(p=>({...p,newStatus:valid[0]}));},[]);
+  
+  useEffect(()=>{
+    if(isAccept && user){
+      setFd(p=>({...p, newOwner: user.org_name||'', toUserId: user.userId||user.user_id||''}));
+    }
+  }, [fd.newStatus, user]);
+
+  const submit = async(e)=>{
+    e.preventDefault(); setLd(true);
+    try {
+      const r = await api.transfer(product.product_id||product.productId,fd);
+      if(r.success){toast.success(isAccept?'Product accepted!':'Transfer successful!');onSuccess?.(r.product);}
+      else toast.error(r.message||'Transfer failed');
+    } catch(err){toast.error(err.message);} finally{setLd(false);}
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+      <div className="glass rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-scale-in" onClick={e=>e.stopPropagation()}>
+        <div className="p-5 border-b border-white/5 flex justify-between items-center">
+          <div>
+            <h2 className="text-lg font-display font-bold text-white">Transfer Product</h2>
+            <p className="text-xs text-slate-500 mt-0.5">{product.name}</p>
+          </div>
+          <button onClick={onClose} className="text-slate-500 hover:text-white"><I name="x" size={18}/></button>
+        </div>
+        <form onSubmit={submit} className="p-5 space-y-3">
+          {!isAccept && (
+            <div className="grid grid-cols-2 gap-3 animate-slide-up">
+              <Inp label="New Owner" icon="building" value={fd.newOwner} onChange={e=>setFd({...fd,newOwner:e.target.value})} placeholder="Organization name" required/>
+              <Inp label="Recipient User ID" icon="user" value={fd.toUserId} onChange={e=>setFd({...fd,toUserId:e.target.value})} placeholder="UUID" required/>
+            </div>
+          )}
+          <Sel label="Status Change" icon="transfer" value={fd.newStatus} onChange={e=>setFd({...fd,newStatus:e.target.value})} options={valid.map(s=>({value:s,label:STATUS_CFG[s].label}))} required/>
+          <Inp label="Location" icon="mapPin" value={fd.location} onChange={e=>setFd({...fd,location:e.target.value})} required/>
+          {!isAccept && (
+            <div className="animate-slide-up">
+              <Inp label="Price / Markup ($)" type="number" icon="dollar" value={fd.price} onChange={e=>setFd({...fd,price:e.target.value})} placeholder="e.g. 500" />
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Notes</label>
+            <textarea value={fd.notes} onChange={e=>setFd({...fd,notes:e.target.value})} rows={2}
+              className="w-full glass-input rounded-xl px-4 py-2.5 text-sm resize-none" placeholder={isAccept?'Acceptance notes...':'Transfer notes...'}/>
+          </div>
+          <div className="flex gap-3 pt-1">
+            <Btn type="button" variant="secondary" onClick={onClose} className="flex-1">Cancel</Btn>
+            <Btn type="submit" loading={loading} className="flex-1">{isAccept?'Accept Product':'Ship Product'}</Btn>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ─── PRODUCT DETAIL MODAL ───────────────────────────────────────────────────
+const DetailModal = ({product,userRole,onClose,onUpdate}) => {
+  const toast = useToast();
+  const [tab,setTab] = useState('timeline');
+  const [showTransfer,setShowTransfer] = useState(false);
+  const [events,setEvents] = useState([]);
+  const [evLd,setEvLd] = useState(false);
+  const [localHist,setLocalHist] = useState(product.history||[]);
+  const [timeLd,setTimeLd] = useState(false);
+  const [qr,setQr] = useState(null);
+  const [qrLd,setQrLd] = useState(false);
+  const [iot,setIot] = useState([]);
+  const [iotAlerts,setIotAlerts] = useState([]);
+  const [iotLd,setIotLd] = useState(false);
+  const [pay,setPay] = useState(null);
+  const [payLd,setPayLd] = useState(false);
+
+  const cs = product.current_status||product.currentStatus||'MANUFACTURED';
+  const pid = (product.product_id||product.productId||'').toString();
+  const rc = ROLE_CFG[userRole]||ROLE_CFG.MANUFACTURER;
+  const canTransfer = rc.allowed.some(s=>STATUS_FLOW.indexOf(s)>STATUS_FLOW.indexOf(cs));
+
+  const tabs = [
+    {id:'timeline',label:'Timeline',icon:'history'},
+    {id:'details',label:'Details',icon:'box'},
+    {id:'qr',label:'QR Code',icon:'qr'},
+    {id:'iot',label:'IoT',icon:'wifi'},
+    {id:'payment',label:'Payment',icon:'dollar'},
+    {id:'events',label:'Events',icon:'clock'},
+  ];
+
+  // Load timeline from events API
+  useEffect(()=>{
+    if(tab==='timeline'&&pid){
+      setTimeLd(true);
+      api.events(pid).then(r=>{
+        if(r.success && r.events){
+          setLocalHist(r.events.map(e => ({
+            ...e,
+            status: e.event_type || e.eventType || e.status || 'STATUS_UNKNOWN',
+            timestamp: uuidToDate(e.event_time) || e.timestamp || new Date().toISOString(),
+            location: e.location || 'Unknown',
+            owner: e.to_org || e.from_org || 'Unknown',
+            notes: e.notes || '',
+            txId: e.fabric_tx_id || e.txId || e.fabricTxId
+          })));
+        }
+      }).catch(e=>console.error('Timeline fetch error:', e)).finally(()=>setTimeLd(false));
+    }
+  },[tab,pid]);
+
+  // Load events tab
+  useEffect(()=>{
+    if(tab==='events'&&pid){
+      setEvLd(true);
+      api.events(pid).then(r=>setEvents(r.success&&r.events?r.events:[])).catch(()=>setEvents([])).finally(()=>setEvLd(false));
+    }
+  },[tab,pid]);
+
+  // Load QR code
+  useEffect(()=>{
+    if(tab==='qr'&&pid&&!qr){
+      setQrLd(true);
+      api.qrcode(pid).then(r=>{if(r.success)setQr(r);}).catch(()=>{}).finally(()=>setQrLd(false));
+    }
+  },[tab,pid]);
+
+  // Load IoT data
+  useEffect(()=>{
+    if(tab==='iot'&&pid){
+      setIotLd(true);
+      Promise.all([api.iotRead(pid).catch(()=>({readings:[]})),api.iotAlerts(pid).catch(()=>({alerts:[]}))])
+        .then(([rd,al])=>{setIot(rd.readings||[]);setIotAlerts(al.alerts||[]);})
+        .finally(()=>setIotLd(false));
+    }
+  },[tab,pid]);
+
+  // Load payment
+  useEffect(()=>{
+    if(tab==='payment'&&pid){
+      setPayLd(true);
+      api.payment(pid).then(r=>setPay(r)).catch(()=>setPay(null)).finally(()=>setPayLd(false));
+    }
+  },[tab,pid]);
+
+  return (
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+        <div className="glass rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden animate-scale-in flex flex-col" onClick={e=>e.stopPropagation()}>
+          {/* Header */}
+          <div className="p-4 sm:p-5 border-b border-white/5 flex-shrink-0">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2.5 mb-1">
+                  <h2 className="text-xl font-display font-bold text-white truncate">{product.name}</h2>
+                  <StatusBadge status={cs} size="lg"/>
+                </div>
+                <p className="text-slate-600 font-mono text-[10px] sm:text-xs break-all">{pid}</p>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                {canTransfer&&<Btn onClick={()=>setShowTransfer(true)} icon={<I name="transfer" size={14}/>} variant="secondary" className="flex-1 sm:flex-none text-xs px-3 py-2">Transfer</Btn>}
+                <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-colors shrink-0"><I name="x" size={18}/></button>
+              </div>
+            </div>
+            <Pipeline currentStatus={cs}/>
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              {[{l:'Manufacturer',v:product.manufacturer||product.manufacturer_org},{l:'Owner',v:product.current_owner_org||product.currentOwner},{l:'Category',v:product.category}].map((x,i)=>(
+                <div key={i} className="bg-slate-900/40 rounded-lg p-2.5">
+                  <p className="text-[10px] text-slate-600 mb-0.5">{x.l}</p>
+                  <p className="text-xs font-medium text-slate-300 truncate">{x.v||'N/A'}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex overflow-x-auto custom-scrollbar border-b border-white/5 px-2 flex-shrink-0">
+            {tabs.map(t=>(
+              <button key={t.id} onClick={()=>setTab(t.id)}
+                className={`tab-btn flex items-center gap-1.5 whitespace-nowrap ${tab===t.id?'active':''}`}>
+                <I name={t.icon} size={13}/>{t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Content */}
+          <div className="p-5 overflow-y-auto flex-1 custom-scrollbar min-h-0">
+            {tab==='timeline' && (
+            <div className="pr-2">
+              <Timeline history={localHist} currentStatus={cs} loading={timeLd} product={product}/>
+            </div>
+          )}
+          
+          {tab==='sensors' && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-bold text-white uppercase tracking-widest">IoT Sensor Logs</h4>
+                <span className="text-[10px] text-teal-400 font-mono bg-teal-500/10 px-2 py-0.5 rounded-full">Live Feed</span>
+              </div>
+              <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar space-y-2">
+                {localHist.filter(h => h.status==='IOT_READING').length === 0 ? (
+                  <div className="text-center py-10 text-slate-600 text-xs">No sensor data available for this product.</div>
+                ) : (
+                  localHist.filter(h => h.status==='IOT_READING').map((h,i)=>(
+                    <div key={i} className="glass-card p-3 rounded-xl flex items-center justify-between border-white/5">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-teal-500/10"><I name="thermometer" size={14} className="text-teal-400"/></div>
+                        <div>
+                          <p className="text-xs font-bold text-white">{h.notes || 'Normal Reading'}</p>
+                          <p className="text-[9px] text-slate-500 uppercase">{new Date(h.timestamp).toLocaleString()}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-mono text-teal-400">{h.location}</p>
+                        <p className="text-[9px] text-slate-600 uppercase">Gateway verified</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+            {tab==='details'&&(
+              <div className="space-y-3 animate-slide-up">
+                <div className="grid grid-cols-2 gap-3">
+                  {Object.entries(product.metadata||{}).map(([k,v])=>(
+                    <div key={k} className="glass-card rounded-xl p-3">
+                      <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-0.5">{k}</p>
+                      <p className="text-sm font-semibold text-white">{v}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="glass-card rounded-xl p-3">
+                  <p className="text-[10px] text-slate-600 mb-1.5">Blockchain Transaction</p>
+                  <div className="flex items-center gap-2 text-[10px] font-mono text-slate-600 bg-slate-900/50 p-2 rounded-lg break-all">
+                    <I name="shield" size={12}/>{product.fabric_tx_id||product.fabricTxId}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tab==='qr'&&(
+              <div className="text-center animate-slide-up">
+                {qrLd?<I name="loader" size={32} className="text-slate-500 mx-auto"/>:qr?(
+                  <div className="space-y-4">
+                    <div className="inline-block p-4 bg-white rounded-2xl shadow-2xl shadow-teal-500/10">
+                      <img src={qr.qrDataUrl} alt="QR Code" className="w-48 h-48"/>
+                    </div>
+                    <div className="glass-card rounded-xl p-4 max-w-sm mx-auto text-left">
+                      <p className="text-xs text-slate-400 mb-2">Scan to verify product authenticity</p>
+                      <div className="text-[10px] font-mono text-teal-400 bg-slate-900/50 p-2 rounded-lg break-all">{qr.verifyUrl}</div>
+                    </div>
+                    <p className="text-[10px] text-slate-600">Product: {qr.name} • ID: {qr.productId?.substring(0,8)}...</p>
+                  </div>
+                ):<p className="text-slate-500 py-8">QR code unavailable</p>}
+              </div>
+            )}
+
+            {tab==='iot'&&(
+              <div className="space-y-4 animate-slide-up">
+                {iotLd?<div className="text-center py-8"><I name="loader" size={24} className="text-slate-500"/></div>:(
+                  <>
+                    {iotAlerts.length>0&&(
+                      <div>
+                        <h4 className="text-xs font-semibold text-amber-400 mb-2 flex items-center gap-1.5"><I name="bell" size={14}/>Alerts ({iotAlerts.length})</h4>
+                        <div className="space-y-2">
+                          {iotAlerts.slice(0,5).map((a,i)=>(
+                            <div key={i} className="glass-card rounded-xl p-3 border-l-2 border-amber-500/50">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="text-xs font-medium text-amber-300">Threshold Alert</p>
+                                  <p className="text-[10px] text-slate-500 mt-0.5">{a.alert || `Temp: ${a.temperature}°C, Hum: ${a.humidity}%`}</p>
+                                </div>
+                                <span className="text-[9px] text-slate-600">{fmtDT(a.timestamp)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <div>
+                      <h4 className="text-xs font-semibold text-teal-400 mb-2 flex items-center gap-1.5"><I name="activity" size={14}/>Sensor Readings ({iot.length})</h4>
+                      {iot.length===0?<p className="text-xs text-slate-600 py-4 text-center">No sensor readings recorded</p>:(
+                        <div className="space-y-2">
+                          {iot.slice(0,10).map((r,i)=>(
+                            <div key={i} className="glass-card rounded-xl p-3 flex items-center gap-3">
+                              <div className="flex gap-3 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <I name="thermo" size={13} className="text-rose-400"/>
+                                  <span className="text-xs text-white font-mono">{r.temperature}°C</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <I name="droplets" size={13} className="text-sky-400"/>
+                                  <span className="text-xs text-white font-mono">{r.humidity}%</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <I name="mapPin" size={13} className="text-teal-400"/>
+                                  <span className="text-xs text-slate-400">{r.location}</span>
+                                </div>
+                              </div>
+                              <span className="text-[9px] text-slate-600 font-mono">{fmtDT(r.timestamp)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {tab==='payment'&&(
+              <div className="animate-slide-up">
+                {payLd?<div className="text-center py-8"><I name="loader" size={24} className="text-slate-500"/></div>:
+                pay&&pay.paid?(
+                  <div className="text-center space-y-4">
+                    <div className="inline-flex p-4 bg-emerald-500/15 rounded-full">
+                      <I name="check" size={32} className="text-emerald-400"/>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-display font-bold text-white">Payment Completed</h3>
+                      <p className="text-sm text-slate-400 mt-1">This product has been paid for</p>
+                    </div>
+                    <div className="glass-card rounded-xl p-4 max-w-sm mx-auto text-left space-y-2">
+                      {[{l:'Amount',v:`${pay.payment?.currency} ${pay.payment?.amount?.toLocaleString()}`},
+                        {l:'Reference',v:pay.payment?.paymentRef},
+                        {l:'Buyer',v:pay.payment?.buyer},
+                        {l:'Date',v:fmtDT(pay.payment?.timestamp)},
+                        {l:'Status',v:pay.payment?.status}
+                      ].map((x,i)=>(
+                        <div key={i} className="flex justify-between">
+                          <span className="text-[10px] text-slate-600">{x.l}</span>
+                          <span className="text-xs text-white font-medium">{x.v||'N/A'}</span>
+                        </div>
+                      ))}
+                      <div className="pt-2 border-t border-white/5">
+                        <p className="text-[9px] text-slate-700 font-mono break-all">{pay.payment?.txId}</p>
+                      </div>
+                    </div>
+                  </div>
+                ):userRole==='CUSTOMER'?(
+                  <div className="max-w-sm mx-auto">
+                    <div className="text-center mb-5">
+                      <div className="inline-flex p-3 bg-teal-500/15 rounded-full mb-3"><I name="dollar" size={24} className="text-teal-400"/></div>
+                      <h3 className="text-lg font-display font-bold text-white">Pending Payment</h3>
+                      <p className="text-2xl font-bold text-teal-400 mt-2">${product.metadata?.price || '0.00'}</p>
+                    </div>
+                    <form onSubmit={async(e)=>{
+                      e.preventDefault(); setPayLd(true);
+                      try { await api.payNow(pid, {amount:product.metadata?.price||0, currency:'USD'}); toast.success('Payment successful!'); setPay({paid:true, payment:{currency:'USD',amount:product.metadata?.price||0,paymentRef:'CC-'+Date.now(),buyer:userRole,timestamp:new Date().toISOString(),status:'COMPLETED'}}); }
+                      catch(err){toast.error(err.message);} finally{setPayLd(false);}
+                    }} className="glass-card rounded-xl p-5 space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-semibold uppercase">Card Number</label>
+                        <div className="flex items-center glass-input rounded-lg px-3 py-2 text-sm"><I name="creditCard" size={16} className="text-slate-500 mr-2"/><input type="text" className="bg-transparent border-none outline-none w-full text-white font-mono placeholder-slate-600" placeholder="0000 0000 0000 0000" maxLength="19" required/></div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-400 font-semibold uppercase">Expiry Date</label>
+                          <input type="text" className="w-full glass-input rounded-lg px-3 py-2 text-sm font-mono text-white placeholder-slate-600" placeholder="MM/YY" maxLength="5" required/>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-400 font-semibold uppercase">CVC / CVV</label>
+                          <input type="password" className="w-full glass-input rounded-lg px-3 py-2 text-sm font-mono text-white placeholder-slate-600" placeholder="•••" maxLength="4" required/>
+                        </div>
+                      </div>
+                      <Btn type="submit" className="w-full mt-2">Pay Now</Btn>
+                    </form>
+                  </div>
+                ):(
+                  <div className="text-center py-8">
+                    <div className="inline-flex p-4 bg-slate-800 rounded-full mb-3">
+                      <I name="dollar" size={28} className="text-slate-500"/>
+                    </div>
+                    <p className="text-sm text-slate-400">{cs==='SOLD_TO_CUSTOMER'?'Payment pending':'Payment available after sale'}</p>
+                    {product.metadata?.price && <p className="text-lg font-bold text-teal-400 mt-2">Current Price: ${product.metadata.price}</p>}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab==='events'&&(
+              <div className="space-y-2 animate-slide-up">
+                {evLd?<div className="text-center py-8"><I name="loader" size={24} className="text-slate-500"/></div>:
+                events.length===0?<p className="text-center text-slate-600 py-8 text-sm">No events recorded</p>:(
+                  events.map((ev,i)=>(
+                    <div key={i} className="glass-card rounded-xl p-3 flex items-start gap-2.5">
+                      <div className="p-1.5 rounded-lg bg-teal-500/15 text-teal-400 mt-0.5"><I name="clock" size={13}/></div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-white">{ev.event_type||'Event'}</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">{ev.notes||''}</p>
+                        <div className="flex items-center gap-2 mt-1 text-[9px] text-slate-700">
+                          <span>{fmtDT(uuidToDate(ev.event_time))}</span>
+                          {ev.fabric_tx_id&&<span className="font-mono truncate">{ev.fabric_tx_id}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {showTransfer&&(
+        <TransferModal product={product} userRole={userRole}
+          onClose={()=>setShowTransfer(false)}
+          onSuccess={(u)=>{onUpdate(u);setShowTransfer(false);}}/>
+      )}
+    </>
+  );
+};
+
+// ─── LOGIN PAGE ─────────────────────────────────────────────────────────────
+const LoginPage = ({onSwitch}) => {
+  const {login} = useAuth();
+  const toast = useToast();
+  const [form,setForm] = useState({email:'',password:''});
+  const [loading,setLd] = useState(false);
+  const [error,setError] = useState('');
+
+  const submit = async(e) => {
+    e.preventDefault(); setLd(true); setError('');
+    try { await login(form.email,form.password); toast.success('Welcome back!'); }
+    catch(err) { setError(err.message); }
+    finally { setLd(false); }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-grid p-4 sc-bg">
+      <div className="w-full max-w-md animate-scale-in">
+        <div className="text-center mb-8">
+          <div className="inline-flex p-4 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-2xl mb-4 shadow-2xl shadow-teal-500/25">
+            <I name="shield" size={32} className="text-white"/>
+          </div>
+          <h1 className="font-display text-3xl font-bold text-white mb-2">Welcome Back</h1>
+          <p className="text-slate-500 text-sm">Sign in to your supply chain account</p>
+        </div>
+        <form onSubmit={submit} className="glass rounded-2xl p-7 space-y-5">
+          {error&&(
+            <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 flex items-center gap-2 text-rose-400 text-sm">
+              <I name="alert" size={16}/>{error}
+            </div>
+          )}
+          <Inp label="Email" icon="mail" type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="you@company.com" required/>
+          <Inp label="Password" icon="lock" type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} placeholder="••••••••" required/>
+          <Btn type="submit" loading={loading} className="w-full">Sign In</Btn>
+          <p className="text-center text-xs text-slate-600">
+            Don't have an account?{' '}
+            <button type="button" onClick={onSwitch} className="text-teal-400 hover:text-teal-300 font-semibold">Create one</button>
+          </p>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ─── SIGNUP PAGE ────────────────────────────────────────────────────────────
+const SignupPage = ({onSwitch}) => {
+  const {signup} = useAuth();
+  const toast = useToast();
+  const [step,setStep] = useState(1);
+  const [role,setRole] = useState('MANUFACTURER');
+  const [loading,setLd] = useState(false);
+  const [error,setError] = useState('');
+  const [form,setForm] = useState({
+    email:'',password:'',full_name:'',phone:'',cnic:'',
+    company_name:'',factory_address:'',product_categories:'',employee_count:'',website:'',established_year:'',
+    warehouse_address:'',coverage_areas:'',fleet_size:'',storage_capacity:'',
+    store_name:'',store_address:'',store_type:'',store_size:'',license_number:'',opening_hours:'',
+    delivery_address:'',date_of_birth:'',gender:''
+  });
+
+  const roles = Object.entries(ROLE_CFG).map(([id,cfg])=>({id,...cfg}));
+
+  const goStep3 = () => {
+    if(!form.email||!form.password||!form.full_name||!form.phone||!form.cnic){setError('All fields required');return;}
+    if(form.password.length<6){setError('Password min 6 chars');return;}
+    setError(''); setStep(3);
+  };
+
+  const submit = async(e) => {
+    e.preventDefault(); setLd(true); setError('');
+    const payload = {email:form.email,password:form.password,full_name:form.full_name,phone:form.phone,cnic:form.cnic,role,
+      ...(role==='MANUFACTURER'&&{company_name:form.company_name,factory_address:form.factory_address,product_categories:form.product_categories,employee_count:form.employee_count,website:form.website,established_year:form.established_year}),
+      ...(role==='DISTRIBUTOR'&&{company_name:form.company_name,warehouse_address:form.warehouse_address,coverage_areas:form.coverage_areas,fleet_size:form.fleet_size,storage_capacity:form.storage_capacity}),
+      ...(role==='RETAILER'&&{store_name:form.store_name,store_address:form.store_address,store_type:form.store_type,store_size:form.store_size,license_number:form.license_number,opening_hours:form.opening_hours}),
+      ...(role==='CUSTOMER'&&{delivery_address:form.delivery_address,date_of_birth:form.date_of_birth,gender:form.gender}),
+    };
+    try { await signup(payload); toast.success('Account created!'); }
+    catch(err) { setError(err.message); setLd(false); }
+  };
+
+  const roleFields = () => {
+    switch(role){
+      case 'MANUFACTURER': return (<>
+        <Inp label="Company Name" icon="building" value={form.company_name} onChange={e=>setForm({...form,company_name:e.target.value})} required/>
+        <Inp label="Factory Address" icon="mapPin" value={form.factory_address} onChange={e=>setForm({...form,factory_address:e.target.value})} required/>
+        <div className="grid grid-cols-2 gap-3">
+          <Inp label="Product Categories" icon="box" value={form.product_categories} onChange={e=>setForm({...form,product_categories:e.target.value})} placeholder="Electronics"/>
+          <Inp label="Employees" icon="user" value={form.employee_count} onChange={e=>setForm({...form,employee_count:e.target.value})} placeholder="50-100"/>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Inp label="Website" icon="globe" value={form.website} onChange={e=>setForm({...form,website:e.target.value})}/>
+          <Inp label="Est. Year" icon="clock" value={form.established_year} onChange={e=>setForm({...form,established_year:e.target.value})} placeholder="2010"/>
+        </div>
+      </>);
+      case 'DISTRIBUTOR': return (<>
+        <Inp label="Company Name" icon="building" value={form.company_name} onChange={e=>setForm({...form,company_name:e.target.value})} required/>
+        <Inp label="Warehouse Address" icon="mapPin" value={form.warehouse_address} onChange={e=>setForm({...form,warehouse_address:e.target.value})} required/>
+        <Inp label="Coverage Areas" icon="globe" value={form.coverage_areas} onChange={e=>setForm({...form,coverage_areas:e.target.value})} placeholder="Karachi, Lahore"/>
+        <div className="grid grid-cols-2 gap-3">
+          <Inp label="Fleet Size" icon="truck" value={form.fleet_size} onChange={e=>setForm({...form,fleet_size:e.target.value})}/>
+          <Inp label="Storage" icon="box" value={form.storage_capacity} onChange={e=>setForm({...form,storage_capacity:e.target.value})}/>
+        </div>
+      </>);
+      case 'RETAILER': return (<>
+        <Inp label="Store Name" icon="store" value={form.store_name} onChange={e=>setForm({...form,store_name:e.target.value})} required/>
+        <Inp label="Store Address" icon="mapPin" value={form.store_address} onChange={e=>setForm({...form,store_address:e.target.value})} required/>
+        <div className="grid grid-cols-2 gap-3">
+          <Inp label="Store Type" icon="building" value={form.store_type} onChange={e=>setForm({...form,store_type:e.target.value})} placeholder="Electronics"/>
+          <Inp label="Store Size" icon="box" value={form.store_size} onChange={e=>setForm({...form,store_size:e.target.value})}/>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Inp label="License #" icon="idCard" value={form.license_number} onChange={e=>setForm({...form,license_number:e.target.value})}/>
+          <Inp label="Hours" icon="clock" value={form.opening_hours} onChange={e=>setForm({...form,opening_hours:e.target.value})} placeholder="9AM-9PM"/>
+        </div>
+      </>);
+      case 'CUSTOMER': return (<>
+        <Inp label="Delivery Address" icon="mapPin" value={form.delivery_address} onChange={e=>setForm({...form,delivery_address:e.target.value})} required/>
+        <div className="grid grid-cols-2 gap-3">
+          <Inp label="Date of Birth" icon="clock" type="date" value={form.date_of_birth} onChange={e=>setForm({...form,date_of_birth:e.target.value})}/>
+          <Sel label="Gender" icon="user" value={form.gender} onChange={e=>setForm({...form,gender:e.target.value})} options={[{value:'',label:'Select...'},{value:'male',label:'Male'},{value:'female',label:'Female'},{value:'other',label:'Other'}]}/>
+        </div>
+      </>);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-grid py-10 px-4 sc-bg">
+      <div className="max-w-2xl mx-auto animate-scale-in">
+        <div className="text-center mb-8">
+          <div className="inline-flex p-4 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-2xl mb-4 shadow-2xl shadow-teal-500/25">
+            <I name="shield" size={32} className="text-white"/>
+          </div>
+          <h1 className="font-display text-3xl font-bold text-white mb-2">Create Account</h1>
+          <p className="text-slate-500 text-sm">Join the blockchain supply chain network</p>
+        </div>
+        <form onSubmit={submit} className="glass rounded-2xl p-7 space-y-5">
+          {error&&<div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 flex items-center gap-2 text-rose-400 text-sm"><I name="alert" size={16}/>{error}</div>}
+
+          {step===1&&(
+            <div className="space-y-5 animate-slide-up">
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Select Your Role</label>
+              <div className="grid grid-cols-2 gap-3">
+                {roles.map(r=>(
+                  <div key={r.id} onClick={()=>setRole(r.id)}
+                    className={`role-card glass-card rounded-xl p-4 border-2 ${role===r.id?'selected border-teal-500/50':'border-transparent'}`}>
+                    <div className={`p-2 rounded-lg bg-${r.color}-500/15 text-${r.color}-400 w-fit mb-2`}><I name={r.icon} size={18}/></div>
+                    <h3 className="font-semibold text-white text-sm">{r.label}</h3>
+                    <p className="text-[10px] text-slate-600 mt-0.5">{r.description}</p>
+                  </div>
+                ))}
+              </div>
+              <Btn onClick={()=>setStep(2)} className="w-full">Continue</Btn>
+            </div>
+          )}
+
+          {step===2&&(
+            <div className="space-y-4 animate-slide-up">
+              <div className="flex items-center gap-2 mb-2">
+                <button type="button" onClick={()=>{setError('');setStep(1);}} className="text-slate-500 hover:text-white text-sm">← Back</button>
+                <span className="text-[10px] text-slate-600">Step 2 of 3</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Inp label="Full Name" icon="user" value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})} required/>
+                <Inp label="Phone" icon="phone" type="tel" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} required/>
+              </div>
+              <Inp label="Email" icon="mail" type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} required/>
+              <Inp label="CNIC" icon="idCard" value={form.cnic} onChange={e=>setForm({...form,cnic:e.target.value})} placeholder="35202-1234567-8" required/>
+              <Inp label="Password" icon="lock" type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} required/>
+              <Btn onClick={goStep3} className="w-full">Continue</Btn>
+            </div>
+          )}
+
+          {step===3&&(
+            <div className="space-y-4 animate-slide-up">
+              <div className="flex items-center gap-2 mb-2">
+                <button type="button" onClick={()=>{setError('');setStep(2);}} className="text-slate-500 hover:text-white text-sm">← Back</button>
+                <span className="text-[10px] text-slate-600">Step 3 of 3</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-teal-500/10 border border-teal-500/20">
+                <p className="text-xs text-teal-400 font-medium">{ROLE_CFG[role].label} Profile</p>
+              </div>
+              {roleFields()}
+              <Btn type="submit" loading={loading} className="w-full">Create Account</Btn>
+            </div>
+          )}
+
+          <p className="text-center text-xs text-slate-600">
+            Already have an account?{' '}
+            <button type="button" onClick={onSwitch} className="text-teal-400 hover:text-teal-300 font-semibold">Sign in</button>
+          </p>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ─── MANUFACTURER DASHBOARD ─────────────────────────────────────────────────
+const MfgDash = ({user}) => {
+  const toast = useToast();
+  const [products,setProducts] = useState([]);
+  const [sel,setSel] = useState(null);
+  const [showCreate,setShowCreate] = useState(false);
+  const [loading,setLd] = useState(true);
+  const [stats,setStats] = useState({total:0,mfg:0,shipped:0,received:0});
+
+  const load = async()=>{
+    try {
+      const r = await api.myProducts(user.userId||user.user_id);
+      const my = Array.from(new Map((r.products||[]).map(p=>[p.product_id||p.productId, p])).values());
+      setProducts(my);
+      setStats({total:my.length,
+        mfg:my.filter(p=>(p.current_status||p.currentStatus)==='MANUFACTURED').length,
+        shipped:my.filter(p=>(p.current_status||p.currentStatus)==='SHIPPED_TO_DISTRIBUTOR').length,
+        received:my.filter(p=>['RECEIVED_BY_DISTRIBUTOR','SHIPPED_TO_RETAILER','RECEIVED_BY_RETAILER','SOLD_TO_CUSTOMER'].includes(p.current_status||p.currentStatus)).length
+      });
+    } catch(e){console.error(e);} finally{setLd(false);}
+  };
+  useEffect(()=>{load();},[]);
+
+  const handleCreate = async(e)=>{
+    e.preventDefault(); const f=e.target;
+    try {
+      const r = await api.create({name:f.name.value,category:f.category.value,description:f.description.value,metadata:{weight:f.weight.value,color:f.color.value,location:f.location.value}});
+      if(r.success){setShowCreate(false);f.reset();load();toast.success('Product created!');}
+    } catch(err){toast.error(err.message);}
+  };
+
+  return (
+    <div className="space-y-5 animate-fade-in">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <Stat title="Total" value={stats.total} icon="package" color="teal"/>
+        <Stat title="Mfg" value={stats.mfg} icon="factory" color="teal"/>
+        <Stat title="Shipped" value={stats.shipped} icon="truck" color="amber"/>
+        <Stat title="Retail" value={stats.received} icon="box" color="emerald"/>
+      </div>
+      <div className="flex justify-between items-center px-1">
+        <h2 className="text-lg font-display font-bold text-white">My Products</h2>
+        <Btn onClick={()=>setShowCreate(true)} icon={<I name="plus" size={14}/>} className="scale-90 md:scale-100">Create</Btn>
+      </div>
+      {loading?<div className="text-center py-10"><I name="loader" size={28} className="text-slate-600"/></div>:(
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          {products.map(p=><ProductCard key={p.product_id||p.productId} product={p} userRole="MANUFACTURER" onClick={setSel} showActions/>)}
+        </div>
+      )}
+      {products.length===0&&!loading&&(
+        <div className="text-center py-10 glass-card rounded-2xl">
+          <I name="package" size={40} className="text-slate-700 mx-auto mb-3"/>
+          <p className="text-slate-600 text-sm">No products yet. Create your first!</p>
+        </div>
+      )}
+      {showCreate&&(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={()=>setShowCreate(false)}>
+          <div className="glass rounded-2xl w-full max-w-lg animate-scale-in" onClick={e=>e.stopPropagation()}>
+            <div className="p-5 border-b border-white/5 flex justify-between items-center">
+              <h2 className="text-lg font-display font-bold text-white">Create Product</h2>
+              <button onClick={()=>setShowCreate(false)} className="text-slate-500 hover:text-white"><I name="x" size={18}/></button>
+            </div>
+            <form onSubmit={handleCreate} className="p-5 space-y-3">
+              <Inp name="name" label="Product Name" icon="box" placeholder="iPhone 15 Pro" required/>
+              <div className="grid grid-cols-2 gap-3">
+                <Inp name="category" label="Category" icon="box" placeholder="Electronics" required/>
+                <Inp name="description" label="Description" icon="box" placeholder="Premium device"/>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <Inp name="weight" label="Weight" icon="box" placeholder="200g"/>
+                <Inp name="color" label="Color" icon="box" placeholder="Black"/>
+                <Inp name="location" label="Location" icon="mapPin" placeholder="Karachi" required/>
+              </div>
+              <div className="flex gap-3 pt-1">
+                <Btn type="button" variant="secondary" onClick={()=>setShowCreate(false)} className="flex-1">Cancel</Btn>
+                <Btn type="submit" className="flex-1">Create</Btn>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {sel&&<DetailModal product={sel} userRole="MANUFACTURER" onClose={()=>setSel(null)} onUpdate={load}/>}
+    </div>
+  );
+};
+
+// ─── DISTRIBUTOR DASHBOARD ──────────────────────────────────────────────────
+const DistDash = ({user}) => {
+  const [products,setProducts] = useState([]);
+  const [sel,setSel] = useState(null);
+  const [loading,setLd] = useState(true);
+  const [searchId,setSearchId] = useState('');
+  const toast = useToast();
+
+  const load = async()=>{
+    try {
+      const r = await api.myProducts(user.userId||user.user_id);
+      setProducts(Array.from(new Map((r.products||[]).map(p=>[p.product_id||p.productId, p])).values()));
+    } catch(e){console.error(e);} finally{setLd(false);}
+  };
+  useEffect(()=>{load();},[]);
+
+  const search = async(e)=>{
+    e.preventDefault();
+    try { const r=await api.product(searchId); setSel(r.success?r.product:r); }
+    catch(err){toast.error('Not found: '+err.message);}
+  };
+
+  const incoming = products.filter(p=>p.current_status==='SHIPPED_TO_DISTRIBUTOR');
+  const warehouse = products.filter(p=>p.current_status==='RECEIVED_BY_DISTRIBUTOR');
+  const shipped = products.filter(p=>['SHIPPED_TO_RETAILER','RECEIVED_BY_RETAILER','SOLD_TO_CUSTOMER'].includes(p.current_status));
+
+  return (
+    <div className="space-y-5 animate-fade-in">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+        <Stat title="Incoming" value={incoming.length} icon="truck" color="amber"/>
+        <Stat title="Warehouse" value={warehouse.length} icon="box" color="teal"/>
+        <Stat title="Shipped" value={shipped.length} icon="transfer" color="emerald"/>
+      </div>
+      <form onSubmit={search} className="flex gap-2">
+        <Inp value={searchId} onChange={e=>setSearchId(e.target.value)} placeholder="Search ID..." className="flex-1"/>
+        <Btn type="submit" icon={<I name="search" size={14}/>} className="px-4">Search</Btn>
+      </form>
+      {[{title:'Incoming',items:incoming,dot:'bg-amber-500'},
+        {title:'Inventory',items:warehouse,dot:'bg-teal-500'},
+        {title:'Shipped',items:shipped,dot:'bg-emerald-500'}
+      ].map(sec=>sec.items.length>0&&(
+        <div key={sec.title}>
+          <h3 className="text-xs font-semibold text-white mb-3 flex items-center gap-2 px-1">
+            <span className={`w-2 h-2 rounded-full ${sec.dot}`}></span>{sec.title} ({sec.items.length})
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            {sec.items.map(p=><ProductCard key={p.product_id||p.productId} product={p} userRole="DISTRIBUTOR" onClick={setSel} showActions/>)}
+          </div>
+        </div>
+      ))}
+      {products.length===0&&!loading&&(
+        <div className="text-center py-10 glass-card rounded-2xl">
+          <I name="truck" size={40} className="text-slate-700 mx-auto mb-3"/>
+          <p className="text-slate-600 text-sm">No products at your stage. Search by ID or wait for shipments.</p>
+        </div>
+      )}
+      {sel&&<DetailModal product={sel} userRole="DISTRIBUTOR" onClose={()=>setSel(null)} onUpdate={load}/>}
+    </div>
+  );
+};
+
+// ─── RETAILER DASHBOARD ─────────────────────────────────────────────────────
+const RetailDash = ({user}) => {
+  const [products,setProducts] = useState([]);
+  const [sel,setSel] = useState(null);
+  const [loading,setLd] = useState(true);
+
+  const load = async()=>{
+    try {
+      const r = await api.myProducts(user.userId||user.user_id);
+      setProducts(Array.from(new Map((r.products||[]).map(p=>[p.product_id||p.productId, p])).values()));
+    } catch(e){console.error(e);} finally{setLd(false);}
+  };
+  useEffect(()=>{load();},[]);
+
+  const incoming = products.filter(p=>p.current_status==='SHIPPED_TO_RETAILER');
+  const shelf = products.filter(p=>p.current_status==='RECEIVED_BY_RETAILER');
+  const sold = products.filter(p=>p.current_status==='SOLD_TO_CUSTOMER');
+
+  return (
+    <div className="space-y-5 animate-fade-in">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+        <Stat title="Incoming" value={incoming.length} icon="truck" color="amber"/>
+        <Stat title="On Shelf" value={shelf.length} icon="store" color="teal"/>
+        <Stat title="Sold" value={sold.length} icon="user" color="emerald"/>
+      </div>
+      {[{title:'Pending Receipt',items:incoming,dot:'bg-amber-500',acts:true},
+        {title:'Active Inventory',items:shelf,dot:'bg-teal-500',acts:true},
+        {title:'Sales History',items:sold,dot:'bg-emerald-500',acts:false}
+      ].map(sec=>sec.items.length>0&&(
+        <div key={sec.title}>
+          <h3 className="text-xs font-semibold text-white mb-3 flex items-center gap-2 px-1">
+            <span className={`w-2 h-2 rounded-full ${sec.dot}`}></span>{sec.title} ({sec.items.length})
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            {sec.items.map(p=><ProductCard key={p.product_id||p.productId} product={p} userRole="RETAILER" onClick={setSel} showActions={sec.acts}/>)}
+          </div>
+        </div>
+      ))}
+      {products.length===0&&!loading&&(
+        <div className="text-center py-10 glass-card rounded-2xl">
+          <I name="store" size={40} className="text-slate-700 mx-auto mb-3"/>
+          <p className="text-slate-600 text-sm">No inventory yet. Wait for deliveries.</p>
+        </div>
+      )}
+      {sel&&<DetailModal product={sel} userRole="RETAILER" onClose={()=>setSel(null)} onUpdate={load}/>}
+    </div>
+  );
+};
+
+// ─── CUSTOMER DASHBOARD ─────────────────────────────────────────────────────
+const CustDash = ({user}) => {
+  const [searchId,setSearchId] = useState('');
+  const [product,setProduct] = useState(null);
+  const [loading,setLd] = useState(false);
+  const [error,setError] = useState('');
+  const [purchases,setPurchases] = useState([]);
+  const toast = useToast();
+
+  useEffect(()=>{
+    api.myProducts(user.userId||user.user_id).then(r=>setPurchases(Array.from(new Map((r.products||[]).map(p=>[p.product_id||p.productId, p])).values()))).catch(()=>{});
+  },[]);
+
+  const search = async(e, idOverride)=>{
+    if(e) e.preventDefault(); 
+    setLd(true); setError('');
+    const id = idOverride || searchId;
+    try {
+      const r = await api.verify(id);
+      console.log('Verify Result:', r);
+      if(r.success){setProduct({...r.blockchain,history:r.history,isAuthentic:r.isAuthentic,metadata:r.database?.metadata||{}});toast.success('Product verified!');}
+      else setError('Product not found');
+    } catch(err){console.error('Verify error:', err); setError('Verification failed');} finally{setLd(false);}
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-5 animate-fade-in">
+      <div className="text-center mb-6">
+        <div className="inline-flex p-4 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl mb-4 shadow-2xl shadow-emerald-500/20">
+          <I name="shield" size={32} className="text-white"/>
+        </div>
+        <h2 className="font-display text-2xl font-bold text-white mb-1">Verify Authenticity</h2>
+        <p className="text-slate-500 text-sm">Enter a product ID to check its blockchain history</p>
+      </div>
+      <form onSubmit={search} className="flex gap-3">
+        <Inp value={searchId} onChange={e=>setSearchId(e.target.value)} placeholder="Enter Product ID..." className="flex-1" icon="search"/>
+        <Btn type="submit" loading={loading}>Verify</Btn>
+      </form>
+      {error&&<div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 flex items-center gap-2 text-rose-400 text-sm"><I name="alert" size={16}/>{error}</div>}
+      {product&&(
+        <div className="glass rounded-2xl p-6 animate-slide-up">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h3 className="text-xl font-display font-bold text-white">{product.name}</h3>
+              <p className="text-slate-600 font-mono text-xs mt-0.5">{product.product_id||product.productId}</p>
+            </div>
+            <StatusBadge status={product.current_status||product.currentStatus} size="lg"/>
+          </div>
+          <div className="grid grid-cols-3 gap-3 mb-5">
+            <div className="glass-card rounded-xl p-3 text-center">
+              <I name="factory" size={20} className="text-teal-400 mx-auto mb-1.5"/>
+              <p className="text-[10px] text-slate-600">Manufacturer</p>
+              <p className="text-xs font-semibold text-white">{product.manufacturer||product.manufacturer_org}</p>
+            </div>
+            <div className="glass-card rounded-xl p-3 text-center">
+              <I name="store" size={20} className="text-amber-400 mx-auto mb-1.5"/>
+              <p className="text-[10px] text-slate-600">Current Owner</p>
+              <p className="text-xs font-semibold text-white">{product.current_owner_org||product.currentOwner}</p>
+            </div>
+            <div className="glass-card rounded-xl p-3 text-center">
+              <I name="check" size={20} className="text-emerald-400 mx-auto mb-1.5"/>
+              <p className="text-[10px] text-slate-600">Authenticity</p>
+              <p className="text-xs font-semibold text-emerald-400">Verified ✓</p>
+            </div>
+          </div>
+          <Pipeline currentStatus={product.current_status||product.currentStatus}/>
+          <div className="border-t border-white/5 pt-5 mt-3">
+            <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-1.5"><I name="history" size={16}/>Supply Chain Journey</h4>
+            <Timeline history={product.history||[]} currentStatus={product.current_status||product.currentStatus}/>
+          </div>
+          <div className="mt-4 pt-4 border-t border-white/5">
+            <div className="flex items-center gap-2 text-[10px] text-slate-700 bg-slate-900/40 p-2.5 rounded-lg">
+              <I name="shield" size={12}/><span className="font-mono break-all">{product.fabric_tx_id||product.fabricTxId}</span>
+            </div>
+          </div>
+        </div>
+      )}
+      {purchases.length>0&&(
+        <div className="mt-10 pt-8 border-t border-white/5">
+          <h3 className="text-lg font-display font-bold text-white mb-4">My Purchases</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            {purchases.map(p=><ProductCard key={p.product_id||p.productId} product={p} userRole="CUSTOMER" onClick={p=>{setProduct({...p, history:[]}); search(null, p.product_id||p.productId); setSearchId(p.product_id||p.productId);}} />)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── TAB: PRODUCTS ──────────────────────────────────────────────────────────
+const ProductsPage = ({user}) => {
+  const [products,setProducts] = useState([]);
+  const [sel,setSel] = useState(null);
+  const [loading,setLd] = useState(true);
+  const load = async()=>{
+    try {
+      const r=await api.myProducts(user.userId||user.user_id); 
+      setProducts(Array.from(new Map((r.products||[]).map(p=>[p.product_id||p.productId, p])).values()));
+    } catch(e){console.error(e);} finally{setLd(false);}
+  };
+  useEffect(()=>{load();},[]);
+  return (
+    <div className="space-y-5 animate-fade-in px-4 md:px-0">
+      <div className="flex justify-between items-center px-1 mb-2">
+        <h2 className="text-lg font-display font-bold text-white">All Products</h2>
+        <span className="text-xs text-slate-500">{products.length} Items</span>
+      </div>
+      {loading?<div className="text-center py-10"><I name="loader" size={28} className="text-slate-600"/></div>:(
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          {products.map(p=><ProductCard key={p.product_id||p.productId} product={p} userRole={user.role} onClick={setSel} showActions/>)}
+        </div>
+      )}
+      {products.length===0&&!loading&&<div className="text-center py-10 glass-card rounded-2xl"><I name="package" size={40} className="text-slate-700 mx-auto mb-3"/><p className="text-slate-600 text-sm">No products found.</p></div>}
+      {sel&&<DetailModal product={sel} userRole={user.role} onClose={()=>setSel(null)} onUpdate={load}/>}
+    </div>
+  );
+};
+
+// ─── TAB: TRANSFERS ─────────────────────────────────────────────────────────
+const TransfersPage = ({user}) => {
+  const [products,setProducts] = useState([]);
+  const [sel,setSel] = useState(null);
+  const [loading,setLd] = useState(true);
+  const load = async()=>{
+    try {
+      const r=await api.myProducts(user.userId||user.user_id); 
+      const all=Array.from(new Map((r.products||[]).map(p=>[p.product_id||p.productId, p])).values());
+      const rc=ROLE_CFG[user.role]||ROLE_CFG.MANUFACTURER;
+      const canT=(p)=>{const s=p.current_status||p.currentStatus||'MANUFACTURED';return rc.allowed.some(x=>STATUS_FLOW.indexOf(x)>STATUS_FLOW.indexOf(s));};
+      
+      // For Transfers, you must currently own the product.
+      let f=all.filter(p=>p.current_owner_id?.toString()===(user.userId||user.user_id)&&canT(p));
+      setProducts(f);
+    } catch(e){console.error(e);} finally{setLd(false);}
+  };
+  useEffect(()=>{load();},[]);
+  return (
+    <div className="space-y-5 animate-fade-in">
+      <div><h2 className="text-lg font-display font-bold text-white">Transfers</h2><p className="text-xs text-slate-600 mt-0.5">Products available for transfer</p></div>
+      {loading?<div className="text-center py-10"><I name="loader" size={28} className="text-slate-600"/></div>:(
+        <div className="grid grid-cols-3 gap-3">{products.map(p=><ProductCard key={p.product_id||p.productId} product={p} userRole={user.role} onClick={setSel} showActions/>)}</div>
+      )}
+      {products.length===0&&!loading&&<div className="text-center py-10 glass-card rounded-2xl"><I name="transfer" size={40} className="text-slate-700 mx-auto mb-3"/><p className="text-slate-600 text-sm">No products available for transfer.</p></div>}
+      {sel&&<DetailModal product={sel} userRole={user.role} onClose={()=>setSel(null)} onUpdate={load}/>}
+    </div>
+  );
+};
+
+// ─── TAB: HISTORY ───────────────────────────────────────────────────────────
+const HistoryPage = ({user}) => {
+  const [events,setEvents] = useState([]);
+  const [loading,setLd] = useState(true);
+  useEffect(()=>{
+    (async()=>{
+      try {
+        const r=await api.myProducts(user.userId||user.user_id); 
+        const all=Array.from(new Map((r.products||[]).map(p=>[p.product_id||p.productId, p])).values());
+        let up=[...all];
+        up.sort((a,b)=>timeSafe(b.updated_at||b.updatedAt)-timeSafe(a.updated_at||a.updatedAt));
+        setEvents(up.map(p=>({id:p.product_id||p.productId,name:p.name,status:p.current_status||p.currentStatus,timestamp:p.updated_at||p.updatedAt,org:p.current_owner_org||p.currentOwner})));
+      } catch(e){console.error(e);} finally{setLd(false);}
+    })();
+  },[]);
+  return (
+    <div className="space-y-5 animate-fade-in">
+      <h2 className="text-lg font-display font-bold text-white">Activity History</h2>
+      {loading?<div className="text-center py-10"><I name="loader" size={28} className="text-slate-600"/></div>:(
+        <div className="space-y-2">
+          {events.map((ev,i)=>{const c=STATUS_CFG[ev.status]||STATUS_CFG.MANUFACTURED;return(
+            <div key={i} className="glass-card rounded-xl p-3.5 flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${c.color} bg-opacity-20`}><I name={c.icon} size={16} className={c.text}/></div>
+              <div className="flex-1"><p className="text-xs font-medium text-white">{ev.name}</p><p className="text-[10px] text-slate-500">Status: <span className={c.text}>{c.label}</span></p></div>
+              <div className="text-right"><p className="text-[10px] text-slate-600">{fmt(ev.timestamp)}</p><p className="text-[10px] text-slate-700">{ev.org}</p></div>
+            </div>
+          );})}
+        </div>
+      )}
+      {events.length===0&&!loading&&<div className="text-center py-10 glass-card rounded-2xl"><I name="history" size={40} className="text-slate-700 mx-auto mb-3"/><p className="text-slate-600 text-sm">No activity recorded.</p></div>}
+    </div>
+  );
+};
+
+// ─── TAB: BENCHMARKS ────────────────────────────────────────────────────────
+const BenchPage = () => {
+  const toast = useToast();
+  const [full,setFull] = useState(null);
+  const [tps,setTps] = useState(null);
+  const [loadingFull,setLdF] = useState(false);
+  const [loadingTps,setLdT] = useState(false);
+
+  const runFull = async()=>{setLdF(true);try{const r=await api.benchFull();console.log('Full Bench Data:', r);if(r.success){setFull(r);toast.success('Benchmark complete!');}else{toast.error(r.error||'Benchmark failed');}}catch(e){toast.error('Failed to fetch: '+e.message);}finally{setLdF(false);}};
+  const runTps = async()=>{setLdT(true);try{const r=await api.benchTps(5);console.log('TPS Data:', r);setTps(r);toast.success('TPS test complete!');}catch(e){toast.error(e.message);}finally{setLdT(false);}};
+
+  return (
+    <div className="space-y-6 animate-fade-in max-w-4xl px-2">
+      <div>
+        <h2 className="text-lg font-display font-bold text-white">System Performance</h2>
+        <p className="text-xs text-slate-600 mt-0.5">Benchmarking Fabric and Cassandra latencies</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+        <div className="glass-card rounded-2xl p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-4 gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <I name="zap" size={18} className="text-teal-400 shrink-0"/>
+              <h3 className="text-sm font-semibold text-white truncate">Full Benchmark</h3>
+            </div>
+            <Btn onClick={runFull} loading={loadingFull} variant="secondary" className="scale-90 px-3 py-1.5 shrink-0"><I name="refresh" size={12}/>Run</Btn>
+          </div>
+          {full?.results?(
+            <div className="space-y-3">
+              <div className="glass-card rounded-xl p-3 bg-slate-900/30">
+                <div className="flex items-center gap-1.5 mb-2"><I name="db" size={13} className="text-emerald-400"/><span className="text-[10px] text-slate-400 font-semibold uppercase">Cassandra</span></div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[{l:'Avg',v:full.results.cassandra?.avgMs ?? 'N/A'},{l:'Min',v:full.results.cassandra?.minMs ?? 'N/A'},{l:'Max',v:full.results.cassandra?.maxMs ?? 'N/A'}].map((x,i)=>(
+                    <div key={i} className="text-center"><p className="text-lg font-display font-bold text-emerald-400">{typeof x.v === 'number' ? `${x.v}ms` : x.v}</p><p className="text-[9px] text-slate-600">{x.l}</p></div>
+                  ))}
+                </div>
+              </div>
+              <div className="glass-card rounded-xl p-3 bg-slate-900/30">
+                <div className="flex items-center gap-1.5 mb-2"><I name="shield" size={13} className="text-teal-400"/><span className="text-[10px] text-slate-400 font-semibold uppercase font-display tracking-wider">Blockchain (Fabric)</span></div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[{l:'Avg',v:full.results.fabric?.avgMs ?? 'N/A'},{l:'Min',v:full.results.fabric?.minMs ?? 'N/A'},{l:'Max',v:full.results.fabric?.maxMs ?? 'N/A'}].map((x,i)=>(
+                    <div key={i} className="text-center"><p className="text-lg font-display font-bold text-teal-400">{typeof x.v === 'number' ? `${x.v}ms` : x.v}</p><p className="text-[9px] text-slate-600">{x.l}</p></div>
+                  ))}
+                </div>
+                {full.results.fabric?.error && <p className="text-[9px] text-amber-500/80 mt-2 bg-amber-500/5 p-1.5 rounded border border-amber-500/10 italic text-center">{full.results.fabric.error}</p>}
+              </div>
+            </div>
+          ):<div className="text-center py-10 border-2 border-dashed border-white/5 rounded-2xl"><I name="zap" size={32} className="text-slate-800 mx-auto mb-2"/><p className="text-[11px] text-slate-600">Click Run to measure latency</p></div>}
+        </div>
+
+        <div className="glass-card rounded-2xl p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-4 gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <I name="activity" size={18} className="text-amber-400 shrink-0"/>
+              <h3 className="text-sm font-semibold text-white truncate">TPS Stress Test</h3>
+            </div>
+            <Btn onClick={runTps} loading={loadingTps} variant="gold" className="scale-90 px-3 py-1.5 shrink-0"><I name="refresh" size={12}/>Run</Btn>
+          </div>
+          {tps?.results?(
+            <div className="space-y-4">
+              <div className="text-center py-3 bg-gradient-to-b from-amber-500/5 to-transparent rounded-2xl">
+                <p className="text-4xl font-display font-bold gold-text tracking-tighter">{tps.results.tps}</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Transactions / Sec</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {[{l:'Time',v:tps.results.totalTimeMs > 1000 ? `${(tps.results.totalTimeMs/1000).toFixed(1)}s` : `${tps.results.totalTimeMs}ms`},{l:'Success',v:`${tps.results.successful}/${tps.config?.transactions||5}`},
+                  {l:'Avg',v:`${tps.results.latency?.avgMs}ms`},{l:'Max',v:`${tps.results.latency?.maxMs}ms`}
+                ].map((x,i)=>(
+                  <div key={i} className="glass-card rounded-xl p-2 text-center bg-slate-900/20">
+                    <p className="text-sm font-bold text-white">{x.v}</p><p className="text-[9px] text-slate-600 font-medium uppercase">{x.l}</p>
+                  </div>
+                ))}
+              </div>
+              {tps.breakdown && (
+                <div className="space-y-1.5 pt-2 border-t border-white/5">
+                  <p className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">Query Breakdown</p>
+                  <div className="grid grid-cols-5 gap-1">
+                    {tps.breakdown.map((b,i)=>(
+                      <div key={i} className="flex flex-col items-center p-1.5 rounded-lg bg-white/5 border border-white/5">
+                        <span className="text-[8px] text-slate-500 mb-0.5">#{b.tx}</span>
+                        <span className={`text-[10px] font-mono font-bold ${b.status==='success'?'text-emerald-400':'text-rose-400'}`}>{b.latency}ms</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ):<div className="text-center py-10 border-2 border-dashed border-white/5 rounded-2xl"><I name="activity" size={32} className="text-slate-800 mx-auto mb-2"/><p className="text-[11px] text-slate-600">Click Run for 5x stress test</p></div>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── TAB: SETTINGS ──────────────────────────────────────────────────────────
+const SettingsPage = ({user}) => {
+  const [copied,setCopied] = useState(false);
+  const copyId = ()=>{navigator.clipboard.writeText(user.userId||user.user_id||'');setCopied(true);setTimeout(()=>setCopied(false),2000);};
+  const role = ROLE_CFG[user.role]||ROLE_CFG.MANUFACTURER;
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-5 animate-fade-in">
+      <h2 className="text-lg font-display font-bold text-white">Settings</h2>
+      <div className="glass rounded-2xl p-5 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className={`p-3 rounded-full bg-gradient-to-br ${role.gradient}`}><I name={role.icon} size={22} className="text-white"/></div>
+          <div><p className="font-semibold text-white">{user.full_name}</p><p className="text-xs text-slate-500">{user.email}</p></div>
+        </div>
+        <div className="glass-card rounded-xl p-3">
+          <p className="text-[10px] text-slate-600 uppercase mb-1">User ID (UUID)</p>
+          <div className="flex items-center justify-between gap-2">
+            <code className="text-xs font-mono text-teal-400 break-all">{user.userId||user.user_id}</code>
+            <button onClick={copyId} className="text-[10px] px-2.5 py-1 rounded-lg bg-teal-500/15 text-teal-400 hover:bg-teal-500/25 transition-colors whitespace-nowrap">{copied?'Copied!':'Copy ID'}</button>
+          </div>
+        </div>
+
+        <div className="glass-card rounded-xl p-3">
+          <p className="text-[10px] text-slate-600 uppercase mb-1">Developer API Token (for IoT Simulator)</p>
+          <div className="flex items-center justify-between gap-2">
+            <code className="text-[10px] font-mono text-amber-400 truncate flex-1">{sessionStorage.getItem('sc_token')}</code>
+            <button onClick={()=>{navigator.clipboard.writeText(sessionStorage.getItem('sc_token')); alert('Token copied!');}} 
+              className="text-[10px] px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-colors whitespace-nowrap">
+              Copy Token
+            </button>
+          </div>
+        </div>
+        <div className="glass-card rounded-xl p-3">
+          <p className="text-[10px] text-slate-600 uppercase mb-1">IoT Integration Token</p>
+          <div className="flex items-center justify-between gap-2">
+            <code className="text-xs font-mono text-teal-400 break-all">{sessionStorage.getItem('sc_token')?.substring(0, 30)}...</code>
+            <button onClick={()=>{navigator.clipboard.writeText(sessionStorage.getItem('sc_token')); toast.success('IoT Token copied!');}} className="text-[10px] px-2.5 py-1 rounded-lg bg-teal-500/15 text-teal-400 hover:bg-teal-500/25 transition-colors whitespace-nowrap">Copy Token</button>
+          </div>
+          <p className="text-[9px] text-slate-700 mt-1.5 italic">Required for running the <code>iot-simulator.sh</code> script.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {[{l:'Role',v:role.label},{l:'Organization',v:user.org_name},{l:'Phone',v:user.phone},{l:'CNIC',v:user.cnic}].map((x,i)=>(
+            <div key={i} className="glass-card rounded-xl p-3"><p className="text-[10px] text-slate-600 uppercase mb-0.5">{x.l}</p><p className="text-xs font-medium text-white">{x.v||'N/A'}</p></div>
+          ))}
+        </div>
+        <div className="border-t border-white/5 pt-4">
+          <button onClick={()=>{sessionStorage.removeItem('sc_token');window.location.reload();}}
+            className="w-full glass-card rounded-xl p-3.5 flex items-center justify-between group hover:bg-rose-500/10 hover:border-rose-500/30 transition-all">
+            <div className="flex items-center gap-2.5">
+              <I name="logout" size={16} className="text-rose-400"/>
+              <div className="text-left"><p className="text-xs font-medium text-white group-hover:text-rose-400 transition-colors">Sign Out</p><p className="text-[9px] text-slate-600">Logout from this session</p></div>
+            </div>
+            <I name="arrowR" size={14} className="text-slate-600 group-hover:text-rose-400 transition-colors"/>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── TAB: ABOUT ─────────────────────────────────────────────────────────────
+const AboutPage = () => {
+  const hamdan = {
+    name: 'Hamdan Tariq', role: 'Team Lead & Chief Architect',
+    nust: 'NUST — BS Artificial Intelligence',
+    summary: 'Directed the end-to-end technical vision and execution, evolving the project from a prototype into a fully operational enterprise solution.',
+    tasks: [
+      'Enterprise System Architecture Design',
+      'Backend Engineering (Node.js & Express)',
+      'Blockchain Integration (Hyperledger Fabric)',
+      'Smart Contract (Go) Lifecycle Management',
+      'Distributed Event Streaming (Apache Kafka)',
+      'NoSQL Data Modeling (Apache Cassandra)',
+      'Secure Public Exposure (ngrok Tunneling)'
+    ]
+  };
+
+  const mubashara = {
+    name: 'Mubashara Anees', role: 'Project Collaborator',
+    nust: 'System Planning & Quality Assurance',
+    summary: 'Played a substantial role in shaping project execution through strategic collaboration, system planning, and testing strategies.',
+    tasks: [
+      'Validation of Operational Workflows',
+      'Business Logic Evaluation',
+      'Testing & Refinement of Features',
+      'Documentation & Structured Reporting',
+      'Milestone Coordination',
+      'Quality Assurance & Presentation'
+    ]
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-20">
+      {/* Hero Section */}
+      <div className="text-center space-y-4">
+        <div className="inline-flex p-3 bg-teal-500/10 rounded-2xl mb-2">
+          <I name="globe" size={32} className="text-teal-400"/>
+        </div>
+        <h2 className="text-4xl font-display font-bold text-white tracking-tight">SupplyChain <span className="gradient-text">Enterprise</span></h2>
+        <p className="text-slate-500 text-sm max-w-2xl mx-auto leading-relaxed">
+          A professionally engineered blockchain solution combining decentralized trust, 
+          distributed data systems, and real-time operational intelligence.
+        </p>
+      </div>
+
+      {/* Team Lead Section */}
+      <div className="glass-card rounded-[2rem] p-8 relative overflow-hidden border-teal-500/20 shadow-2xl shadow-teal-500/5">
+        <div className="absolute top-0 right-0 p-8 opacity-[0.03] rotate-12"><I name="shield" size={180}/></div>
+        <div className="relative z-10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div>
+              <p className="text-xs font-bold text-teal-400 uppercase tracking-[0.2em] mb-1">{hamdan.role}</p>
+              <h3 className="text-2xl font-display font-bold text-white">{hamdan.name}</h3>
+              <p className="text-xs text-slate-500">{hamdan.nust}</p>
+            </div>
+            <div className="flex gap-2">
+              <span className="px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-[10px] font-bold text-teal-400">Team Lead</span>
+            </div>
+          </div>
+          <p className="text-sm text-slate-300 leading-relaxed mb-6 italic border-l-2 border-teal-500/30 pl-4">{hamdan.summary}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+            {hamdan.tasks.map((t,i)=>(
+              <div key={i} className="flex items-center gap-2.5 text-[11px] text-slate-400">
+                <div className="w-1.5 h-1.5 rounded-full bg-teal-500/40"></div>{t}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Collaborator Section */}
+      <div className="glass-card rounded-[2rem] p-8 relative overflow-hidden border-amber-500/10">
+        <div className="absolute top-0 right-0 p-8 opacity-[0.03] -rotate-12"><I name="user" size={180}/></div>
+        <div className="relative z-10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div>
+              <p className="text-xs font-bold text-amber-400 uppercase tracking-[0.2em] mb-1">{mubashara.role}</p>
+              <h3 className="text-2xl font-display font-bold text-white">{mubashara.name}</h3>
+              <p className="text-xs text-slate-500">{mubashara.nust}</p>
+            </div>
+            <div className="flex gap-2">
+              <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-400">Collaborator</span>
+            </div>
+          </div>
+          <p className="text-sm text-slate-300 leading-relaxed mb-6 italic border-l-2 border-amber-500/30 pl-4">{mubashara.summary}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+            {mubashara.tasks.map((t,i)=>(
+              <div key={i} className="flex items-center gap-2.5 text-[11px] text-slate-400">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-500/40"></div>{t}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Supervision & Closing */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2 glass-card rounded-2xl p-6">
+          <h4 className="text-xs font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+            <I name="building" size={14} className="text-teal-400"/> Academic Supervision
+          </h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl bg-slate-900/40 border border-white/5 group hover:border-teal-500/30 transition-colors">
+              <p className="text-sm font-bold text-white">Dr. Mohsin Raza</p>
+              <p className="text-[10px] text-slate-600 uppercase font-semibold">Research Head of Department</p>
+            </div>
+            <div className="p-4 rounded-xl bg-slate-900/40 border border-white/5 group hover:border-teal-500/30 transition-colors">
+              <p className="text-sm font-bold text-white">Mr. Abid Hussain</p>
+              <p className="text-[10px] text-slate-600 uppercase font-semibold">Laboratory Engineering Supervisor</p>
+            </div>
+          </div>
+        </div>
+        <div className="glass-card rounded-2xl p-6 flex flex-col justify-center text-center">
+          <p className="text-[10px] font-bold text-slate-500 uppercase mb-2">Final Conclusion</p>
+          <p className="text-xs text-slate-400 italic leading-relaxed">
+            "Demonstrating both technical depth and practical innovation in cloud computing and decentralized trust."
+          </p>
+        </div>
+      </div>
+
+      {/* Engineering Badges */}
+      <div className="flex flex-wrap justify-center gap-3 opacity-60">
+        {['Hyperledger Fabric','Apache Kafka','Apache Cassandra','Node.js','Docker','React','Enterprise Go'].map(tech=>(
+          <span key={tech} className="text-[9px] font-bold text-slate-600 border border-slate-800 px-3 py-1 rounded-md uppercase tracking-tighter">{tech}</span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── QR SCANNER PAGE ────────────────────────────────────────────────────────
+const ScannerPage = ({user}) => {
+  const toast = useToast();
+  const [scanning,setScanning] = useState(false);
+  const [result,setResult] = useState(null);
+  const [product,setProduct] = useState(null);
+  const [loading,setLd] = useState(false);
+  const [error,setError] = useState('');
+  const videoRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const scanLoopRef = useRef(null);
+
+  useEffect(() => {
+    return () => { stopScan(); };
+  }, []);
+
+  const tick = async () => {
+    if (!videoRef.current || !videoRef.current.srcObject) return;
+    
+    if (videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+      // Hardware accelerated native detection (Google Lens backend)
+      if (window.BarcodeDetector) {
+        try {
+          if (!window.barcodeDetectorInst) {
+            window.barcodeDetectorInst = new window.BarcodeDetector({ formats: ['qr_code'] });
+          }
+          const barcodes = await window.barcodeDetectorInst.detect(videoRef.current);
+          if (barcodes.length > 0) {
+            stopScan();
+            handleScan(barcodes[0].rawValue);
+            return;
+          }
+        } catch (e) { /* ignore and fallback */ }
+      }
+
+      // Fallback to jsQR
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      
+      // Attempt to read
+      let code = window.jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+      
+      if (code) {
+        stopScan();
+        handleScan(code.data);
+        return;
+      }
+    }
+    scanLoopRef.current = requestAnimationFrame(tick);
+  };
+
+  const startScan = () => {
+    setScanning(true); setResult(null); setProduct(null); setError('');
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(function(stream) {
+        if (!videoRef.current) return;
+        videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute("playsinline", true);
+        videoRef.current.play();
+        scanLoopRef.current = requestAnimationFrame(tick);
+      }).catch(err => {
+        setError('Camera access denied or unavailable. Please upload an image.');
+        setScanning(false);
+      });
+    } else {
+      setError('Camera not supported by this browser. Please upload an image.');
+      setScanning(false);
+    }
+  };
+
+  const stopScan = () => {
+    if (scanLoopRef.current) cancelAnimationFrame(scanLoopRef.current);
+    if (videoRef.current && videoRef.current.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+      videoRef.current.srcObject = null;
+    }
+    setScanning(false);
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if(!file) return;
+    setScanning(false); setResult(null); setProduct(null); setError(''); setLd(true);
+    stopScan();
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = async () => {
+        // Pass 1: Native BarcodeDetector (Google Lens Engine - handles white borders effortlessly)
+        if (window.BarcodeDetector) {
+          try {
+            if (!window.barcodeDetectorInst) {
+              window.barcodeDetectorInst = new window.BarcodeDetector({ formats: ['qr_code'] });
+            }
+            const barcodes = await window.barcodeDetectorInst.detect(img);
+            if (barcodes.length > 0) {
+              handleScan(barcodes[0].rawValue);
+              return;
+            }
+          } catch (e) { /* fallback if native fails */ }
+        }
+
+        // Pass 2: jsQR on Full Resolution (handles massive white borders for older browsers)
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0, img.width, img.height);
+        let imgData = ctx.getImageData(0, 0, img.width, img.height);
+        
+        let code = window.jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: "dontInvert" });
+        if (!code) code = window.jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: "invertFirst" });
+        
+        if (code) {
+          handleScan(code.data);
+          return;
+        }
+
+        // Pass 3: jsQR on Scaled Down Image (destroys moiré interference patterns from screens)
+        let w = img.width;
+        let h = img.height;
+        if (w > 1000) {
+            h = Math.floor(h * (1000 / w));
+            w = 1000;
+            canvas.width = w;
+            canvas.height = h;
+            // Clear and redraw scaled
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, w, h);
+            imgData = ctx.getImageData(0, 0, w, h);
+            
+            code = window.jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: "dontInvert" });
+            if (!code) code = window.jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: "invertFirst" });
+            
+            if (code) {
+              handleScan(code.data);
+              return;
+            }
+        }
+
+        // Failed all 3 passes
+        setError('No QR code found. Try cropping out white borders or ensure the code is clear.');
+        setLd(false);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleScan = async(text) => {
+    setResult(text); setLd(true); setError('');
+    
+    // Robustly extract the UUID from the scanned text (whether it's a URL, JSON, or raw string)
+    let pid = text.trim();
+    const uuidMatch = text.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
+    if (uuidMatch) {
+      pid = uuidMatch[0];
+    }
+
+    try {
+      const r = await api.verify(pid);
+      if(r.success) {
+        setProduct({...r.blockchain,history:r.history,isAuthentic:r.isAuthentic});
+        toast.success('Product verified from QR!');
+      } else { setError('Product not found for scanned code'); }
+    } catch(err) { setError('Could not verify: '+err.message); }
+    finally { setLd(false); }
+  };
+
+  const handleManual = async(e) => {
+    e.preventDefault();
+    const id = e.target.manualId.value.trim();
+    if(id) handleScan(id);
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-5 animate-fade-in">
+      <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
+
+      <div className="text-center mb-4">
+        <div className="inline-flex p-4 bg-gradient-to-br from-teal-500 to-amber-600 rounded-2xl mb-4 shadow-2xl shadow-teal-500/20">
+          <I name="qr" size={32} className="text-white"/>
+        </div>
+        <h2 className="font-display text-2xl font-bold text-white mb-1">QR Code Scanner</h2>
+        <p className="text-slate-500 text-sm">Scan a product QR code to verify authenticity</p>
+      </div>
+
+      {!scanning && !product && (
+        <div className="glass rounded-2xl p-8 text-center space-y-5">
+          <div className="w-48 h-48 mx-auto rounded-2xl border-2 border-dashed border-teal-500/30 flex items-center justify-center bg-teal-500/5">
+            <I name="qr" size={64} className="text-teal-500/30"/>
+          </div>
+          <div className="flex gap-3 justify-center max-w-sm mx-auto">
+            <Btn onClick={startScan} icon={<I name="eye" size={16}/>} className="flex-1">Camera</Btn>
+            <Btn onClick={()=>fileInputRef.current?.click()} variant="gold" icon={<I name="box" size={16}/>} className="flex-1">Upload Photo</Btn>
+          </div>
+          <div className="relative py-3">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
+            <div className="relative flex justify-center"><span className="bg-[#04090f] px-4 text-xs text-slate-600">or enter manually</span></div>
+          </div>
+          <form onSubmit={handleManual} className="flex gap-3 max-w-md mx-auto">
+            <Inp name="manualId" placeholder="Paste Product ID..." className="flex-1" icon="hash"/>
+            <Btn type="submit" variant="secondary">Verify</Btn>
+          </form>
+        </div>
+      )}
+
+      {scanning && (
+        <div className="glass rounded-2xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="status-dot dot-online"></span>
+              <span className="text-xs text-teal-400 font-semibold">Camera Active</span>
+            </div>
+            <Btn onClick={stopScan} variant="danger" className="text-xs px-3 py-1.5">Stop</Btn>
+          </div>
+          <div className="rounded-2xl overflow-hidden relative w-[300px] h-[300px] mx-auto bg-[#020617] shadow-[inset_0_4px_30px_rgba(0,0,0,0.5)]">
+            <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover"></video>
+            <div className="absolute inset-6 pointer-events-none">
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-teal-400 rounded-tl-xl shadow-[0_0_10px_rgba(45,212,191,0.5)]"></div>
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-teal-400 rounded-tr-xl shadow-[0_0_10px_rgba(45,212,191,0.5)]"></div>
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-teal-400 rounded-bl-xl shadow-[0_0_10px_rgba(45,212,191,0.5)]"></div>
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-teal-400 rounded-br-xl shadow-[0_0_10px_rgba(45,212,191,0.5)]"></div>
+              <div className="absolute left-0 right-0 h-0.5 bg-teal-400 shadow-[0_0_12px_rgba(45,212,191,1)] animate-scan-line z-10"></div>
+            </div>
+            <div className="absolute inset-0 bg-teal-500/10 pointer-events-none mix-blend-overlay"></div>
+          </div>
+          <p className="text-center text-[10px] text-slate-600">Point your camera at a product QR code</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 flex items-center gap-2 text-rose-400 text-sm">
+          <I name="alert" size={16}/>{error}
+        </div>
+      )}
+
+      {loading && (
+        <div className="text-center py-8"><I name="loader" size={28} className="text-teal-400"/><p className="text-sm text-slate-500 mt-2">Verifying on blockchain...</p></div>
+      )}
+
+      {product && (
+        <div className="glass rounded-2xl p-6 animate-slide-up space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="p-1.5 rounded-lg bg-emerald-500/15"><I name="check" size={18} className="text-emerald-400"/></div>
+                <h3 className="text-xl font-display font-bold text-white">{product.name}</h3>
+              </div>
+              <p className="text-slate-600 font-mono text-xs">{product.product_id||product.productId}</p>
+            </div>
+            <StatusBadge status={product.current_status||product.currentStatus} size="lg"/>
+          </div>
+
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex items-center gap-2">
+            <I name="shield" size={16} className="text-emerald-400"/>
+            <span className="text-sm text-emerald-300 font-semibold">Blockchain Verified — Authentic Product</span>
+          </div>
+
+          <Pipeline currentStatus={product.current_status||product.currentStatus}/>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="glass-card rounded-xl p-3 text-center">
+              <I name="factory" size={18} className="text-teal-400 mx-auto mb-1"/>
+              <p className="text-[10px] text-slate-600">Manufacturer</p>
+              <p className="text-xs font-semibold text-white">{product.manufacturer||product.manufacturer_org}</p>
+            </div>
+            <div className="glass-card rounded-xl p-3 text-center">
+              <I name="store" size={18} className="text-amber-400 mx-auto mb-1"/>
+              <p className="text-[10px] text-slate-600">Current Owner</p>
+              <p className="text-xs font-semibold text-white">{product.current_owner_org||product.currentOwner}</p>
+            </div>
+            <div className="glass-card rounded-xl p-3 text-center">
+              <I name="check" size={18} className="text-emerald-400 mx-auto mb-1"/>
+              <p className="text-[10px] text-slate-600">Authenticity</p>
+              <p className="text-xs font-semibold text-emerald-400">Verified ✓</p>
+            </div>
+          </div>
+
+          <div className="border-t border-white/5 pt-4">
+            <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-1.5"><I name="history" size={14}/>Supply Chain Journey</h4>
+            <Timeline history={product.history||[]} currentStatus={product.current_status||product.currentStatus}/>
+          </div>
+
+          <div className="flex gap-3">
+            <Btn onClick={()=>{setProduct(null);setResult(null);}} variant="secondary" icon={<I name="refresh" size={14}/>} className="flex-1">Scan Another</Btn>
+            <Btn onClick={startScan} icon={<I name="eye" size={14}/>} className="flex-1">Open Camera</Btn>
+          </div>
+        </div>
+      )}
+
+      {result && !loading && !product && !error && (
+        <div className="glass-card rounded-xl p-3 text-center">
+          <p className="text-[10px] text-slate-600">Scanned: <span className="font-mono text-teal-400">{result}</span></p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── DASHBOARD LAYOUT ───────────────────────────────────────────────────────
+const TopBar = ({title,user,onProfile}) => {
+  const [health,setHealth] = useState(null);
+  useEffect(()=>{
+    const check = () => fetch(`${API_BASE.replace('/api','')}/health`,{headers:{'ngrok-skip-browser-warning':'1'}}).then(r=>r.json()).catch(()=>null).then(setHealth);
+    check(); const iv=setInterval(check,30000);
+    return ()=>clearInterval(iv);
+  },[]);
+
+  return (
+    <header className="flex items-center justify-between px-4 md:px-8 py-4 md:py-5 border-b border-white/5 bg-slate-950/20 backdrop-blur-md sticky top-0 z-30">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg md:text-xl font-display font-bold text-white tracking-tight truncate">{title}</h2>
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-900/50 border border-white/5">
+            <span className={`status-dot ${health?'dot-online':'dot-offline'}`}></span>
+            <span className="text-[8px] font-bold uppercase text-slate-500 hidden sm:inline tracking-tighter">{health?'Online':'Offline'}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="hidden sm:inline text-[9px] text-slate-500 uppercase font-bold tracking-widest">Workspace</span>
+          <span className="hidden sm:inline text-slate-700">/</span>
+          <span className="text-[9px] text-teal-500/80 uppercase font-bold tracking-widest truncate">{user.org_name}</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-3 md:gap-4 ml-2">
+        <button className="hidden sm:flex p-2.5 rounded-xl bg-white/5 text-slate-400 hover:text-white transition-colors relative">
+          <I name="bell" size={18}/>
+          <span className="absolute top-2 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-[#0f172a]"></span>
+        </button>
+        <div onClick={onProfile} className="flex items-center gap-3 sm:pl-4 sm:border-l border-white/5 cursor-pointer group">
+          <div className="hidden md:block text-right">
+            <p className="text-sm font-bold text-white group-hover:text-teal-400 transition-colors">{user.full_name}</p>
+            <p className="text-[10px] text-slate-500 font-medium">{user.role}</p>
+          </div>
+          <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 flex items-center justify-center text-teal-400 group-hover:border-teal-500/30 transition-all shadow-xl">
+            <I name="user" size={18}/>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+const BottomNav = ({activeTab,onTabChange,user}) => {
+  const items = [
+    {id:'dashboard',label:'Home',icon:'chart'},
+    {id:'products',label:'Inv',icon:'package'},
+    {id:'scanner',label:'Scan',icon:'qr'},
+    {id:'about',label:'About',icon:'globe'},
+    {id:'settings',label:'Set',icon:'settings'},
+  ];
+  return (
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-950/80 backdrop-blur-xl border-t border-white/5 flex justify-around items-center px-2 py-3 z-[100] pb-safe">
+      {items.map(t=>(
+        <button key={t.id} onClick={()=>onTabChange(t.id)}
+          className={`flex flex-col items-center gap-1 flex-1 transition-all ${activeTab===t.id?'text-teal-400':'text-slate-500'}`}>
+          <div className={`p-1.5 rounded-lg ${activeTab===t.id?'bg-teal-500/10':''}`}><I name={t.icon} size={20}/></div>
+          <span className="text-[10px] font-bold uppercase tracking-tighter">{t.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+};
+
+const DashLayout = ({user}) => {
+  const [tab,setTab] = useState('dashboard');
+  const [showProfile,setShowProfile] = useState(false);
+
+  const getTitle = () => {
+    const item = [
+      {id:'dashboard',label:'Command Center'},
+      {id:'products',label:'Product Inventory'},
+      {id:'transfers',label:'Logistics & Transfers'},
+      {id:'history',label:'Audit Trail'},
+      {id:'verify',label:'Product Verification'},
+      {id:'scanner',label:'High-Speed QR Scanner'},
+      {id:'benchmarks',label:'System Performance'},
+      {id:'settings',label:'User Settings'}
+    ].find(x=>x.id===tab);
+    return item?.label || 'Dashboard';
+  };
+
+  const content = () => {
+    switch(tab){
+      case 'dashboard':
+        switch(user.role){
+          case 'MANUFACTURER': return <MfgDash user={user}/>;
+          case 'DISTRIBUTOR': return <DistDash user={user}/>;
+          case 'RETAILER': return <RetailDash user={user}/>;
+          case 'CUSTOMER': return <CustDash user={user}/>;
+          default: return <MfgDash user={user}/>;
+        }
+      case 'products': return <ProductsPage user={user}/>;
+      case 'transfers': return <TransfersPage user={user}/>;
+      case 'history': return <HistoryPage user={user}/>;
+      case 'verify': return <CustDash user={user}/>;
+      case 'scanner': return <ScannerPage user={user}/>;
+      case 'benchmarks': return <BenchPage/>;
+      case 'about': return <AboutPage/>;
+      case 'settings': return <SettingsPage user={user}/>;
+      default: return <MfgDash user={user}/>;
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen sc-bg font-sans selection:bg-teal-500/30">
+      <Sidebar user={user} activeTab={tab} onTabChange={setTab} onProfileClick={()=>setShowProfile(true)}/>
+      <div className="flex-1 flex flex-col min-w-0 pb-20 lg:pb-0">
+        <TopBar title={getTitle()} user={user} onProfile={()=>setShowProfile(true)}/>
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto custom-scrollbar">
+          <div className="max-w-[1400px] mx-auto">
+            {content()}
+          </div>
+        </main>
+      </div>
+      <BottomNav activeTab={tab} onTabChange={setTab} user={user}/>
+      {showProfile&&<ProfileModal user={user} onClose={()=>setShowProfile(false)}/>}
+    </div>
+  );
+};
+
+// ─── APP ROOT ───────────────────────────────────────────────────────────────
+const App = () => {
+  const {user,loading} = useAuth();
+  const [page,setPage] = useState('login');
+
+  if(loading) return (
+    <div className="min-h-screen flex items-center justify-center sc-bg">
+      <div className="text-center animate-fade-in">
+        <div className="inline-flex p-4 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-2xl mb-4 shadow-2xl shadow-teal-500/25">
+          <I name="shield" size={32} className="text-white"/>
+        </div>
+        <div className="flex items-center gap-2 justify-center mt-3">
+          <I name="loader" size={16} className="text-teal-400"/>
+          <p className="text-sm text-slate-500">Loading...</p>
+        </div>
+      </div>
+    </div>
+  );
+
+  if(user) return <DashLayout user={user}/>;
+  if(page==='signup') return <SignupPage onSwitch={()=>setPage('login')}/>;
+  return <LoginPage onSwitch={()=>setPage('signup')}/>;
+};
+
+// ─── RENDER ─────────────────────────────────────────────────────────────────
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <ToastProvider><AuthProvider><App/></AuthProvider></ToastProvider>
+);
+</script>
+</body>
+</html>
