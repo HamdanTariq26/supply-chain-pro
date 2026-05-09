@@ -1,6 +1,5 @@
 # 🛡️ SupplyChain Pro: Blockchain & IoT Traceability Platform
 
-![SupplyChain Banner](https://img.shields.io/badge/Status-Enterprise%20Ready-success?style=for-the-badge&logo=hyperledger)
 ![GitHub stars](https://img.shields.io/badge/Blockchain-Hyperledger%20Fabric-2F3134?style=for-the-badge&logo=hyperledger)
 ![Cassandra](https://img.shields.io/badge/Database-Apache%20Cassandra-1287B1?style=for-the-badge&logo=apache-cassandra)
 ![Kafka](https://img.shields.io/badge/Messaging-Apache%20Kafka-231F20?style=for-the-badge&logo=apache-kafka)
