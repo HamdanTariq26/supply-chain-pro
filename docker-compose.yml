@@ -1,0 +1,77 @@
+services:
+  cassandra1:
+    image: cassandra:4.1
+    container_name: cassandra1
+    ports:
+      - "9042:9042"
+    environment:
+      - CASSANDRA_CLUSTER_NAME=SupplyChain
+      - CASSANDRA_DC=dc1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - MAX_HEAP_SIZE=512M
+      - HEAP_NEWSIZE=128M
+    volumes:
+      - cassandra1_data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "describe keyspaces"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+  cassandra2:
+    image: cassandra:4.1
+    container_name: cassandra2
+    environment:
+      - CASSANDRA_CLUSTER_NAME=SupplyChain
+      - CASSANDRA_DC=dc1
+      - CASSANDRA_SEEDS=cassandra1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - MAX_HEAP_SIZE=512M
+      - HEAP_NEWSIZE=128M
+    volumes:
+      - cassandra2_data:/var/lib/cassandra
+    depends_on:
+      cassandra1:
+        condition: service_healthy
+
+  cassandra3:
+    image: cassandra:4.1
+    container_name: cassandra3
+    environment:
+      - CASSANDRA_CLUSTER_NAME=SupplyChain
+      - CASSANDRA_DC=dc1
+      - CASSANDRA_SEEDS=cassandra1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - MAX_HEAP_SIZE=512M
+      - HEAP_NEWSIZE=128M
+    volumes:
+      - cassandra3_data:/var/lib/cassandra
+    depends_on:
+      cassandra2:
+        condition: service_started
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+volumes:
+  cassandra1_data:
+  cassandra2_data:
+  cassandra3_data:
