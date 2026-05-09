@@ -1,0 +1,17 @@
+{
+  "name": "supplychain-chaincode",
+  "version": "1.0.0",
+  "description": "Supply chain smart contracts",
+  "main": "index.js",
+  "scripts": {
+    "start": "fabric-chaincode-node start"
+  },
+  "dependencies": {
+    "fabric-contract-api": "^2.5.0",
+    "fabric-shim": "^2.5.0"
+  },
+  "bundledDependencies": [
+    "fabric-contract-api",
+    "fabric-shim"
+  ]
+}
