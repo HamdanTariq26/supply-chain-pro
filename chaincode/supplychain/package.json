@@ -1,0 +1,16 @@
+{
+  "name": "supplychain",
+  "version": "1.0.0",
+  "description": "Supply Chain Chaincode",
+  "main": "index.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "fabric-chaincode-node server"
+  },
+  "dependencies": {
+    "fabric-contract-api": "^2.5.0",
+    "fabric-shim": "^2.5.0"
+  }
+}
